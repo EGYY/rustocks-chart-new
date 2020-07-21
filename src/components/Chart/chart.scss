@@ -1,0 +1,203 @@
+body {
+  color: #181818;
+  font-family: 'RobotoRegular', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  position: relative;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+
+//Mui components
+.MuiButton-containedPrimary {
+  background-color: #0078dc !important;
+}
+
+.MuiCheckbox-colorPrimary.Mui-checked {
+  color: #0078dc !important;
+}
+
+
+.js-plotly-plot .plotly .modebar {
+  display: none;
+}
+
+.iframe-wrap {
+  position: relative;
+  margin: 0 auto;
+  display: flex;
+  max-width: 730px;
+  box-sizing: border-box;
+}
+
+.iframe-menu {
+  margin-top: 16px;
+  display: flex;
+  border-top: 1px solid #DDDCDC;
+  border-bottom: 1px solid #DDDCDC;
+
+  &__opener {
+    width: 50%;
+    padding: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    text-decoration: none;
+    color: #181818;
+
+    &:first-of-type {
+      border-right: 1px solid #DDDCDC;
+    }
+
+    svg {
+      margin-left: 5px;
+    }
+  }
+}
+
+.iframe-col__left {
+  width: 536px;
+  margin-right: 8px;
+}
+
+.iframe-chart {
+  box-sizing: border-box;
+  border-radius: 4px;
+  max-width: 100%;
+  height: 450px;
+
+  .svg-container, .main-svg, .svg-container {
+    max-width: 100%;
+    height: 450px;
+  }
+}
+
+.iframe-filter__row {
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+  margin-bottom: 8px;
+
+  & > .iframe-filter__title {
+    margin: 0;
+  }
+}
+
+.iframe-filter__flex {
+  display: flex;
+  margin: 0 -4px;
+  align-items: center;
+
+  input, label {
+    margin: 0 4px;
+  }
+}
+
+.iframe-filter__title {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 24px;
+  font-family: 'Roboto', sans-serif;
+  margin: 9px 0;
+}
+
+.iframe-filter__text {
+  font-size: 12px;
+  font-family: 'RobotoRegular', sans-serif;
+  margin: 12px 0 9px 0;
+}
+
+.iframe-filter__togler {
+  text-decoration: none;
+  color: #181818;
+}
+
+.iframe-filter__block {
+  //margin-bottom: 31px;
+  margin-bottom: 18px;
+
+  button {
+    margin-bottom: 15px;
+    width: 200px;
+  }
+
+  .iframe-checkboxes__item {
+    margin: 12px 0;
+  }
+
+  .iframe-checkboxes__item_big {
+    margin: 20px 0;
+  }
+
+  .iframe-checkboxes__signal {
+    margin: 12px 4px 12px 33px;
+  }
+}
+
+.iframe-input {
+  width: 56px;
+  box-sizing: border-box;
+  height: 32px;
+  border: 1px solid #D1D1D1;
+  padding: 6px;
+  text-align: center;
+  color: #5A5A5A;
+}
+
+.iframe-checkboxes__item {
+  position: relative;
+
+  &_big {
+    margin: 20px 0;
+  }
+}
+
+.iframe-checkboxes__checkbox {
+  position: absolute;
+  visibility: hidden;
+
+  &:checked {
+    + label:before {
+      background: #35AA67;
+      border-color: #35AA67;
+    }
+
+    + label:after {
+      border-color: #fff;
+    }
+  }
+}
+
+.iframe-checkboxes__label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+
+  &:before {
+    content: '';
+    display: block;
+    background: #FFFFFF;
+    border: 1px solid #D1D1D1;
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    transition: background .3s, border .3s;
+  }
+
+  &:after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 12px;
+    border-right: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    transform: rotate(45deg);
+    left: 5px;
+    top: 1px;
+    transition: border .5s;
+  }
+}
