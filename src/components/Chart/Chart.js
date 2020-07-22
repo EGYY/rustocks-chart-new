@@ -7,6 +7,7 @@ import {ChartCanvas, Chart} from "react-financial-charts";
 import {XAxis, YAxis} from "react-financial-charts/lib/axes";
 import {discontinuousTimeScaleProvider} from "react-financial-charts/lib/scale";
 import {BarSeries, LineSeries, CandlestickSeries, MACDSeries, RSISeries} from "react-financial-charts/lib/series";
+import {RSITooltip, HoverTooltip} from "react-financial-charts/lib/tooltip";
 import {CrossHairCursor, MouseCoordinateX} from "react-financial-charts/lib/coordinates";
 import {withDeviceRatio} from "react-financial-charts/lib/utils";
 import {ema, macd, sma, rsi} from "react-financial-charts/lib/indicator";
@@ -99,32 +100,32 @@ class ChartNew extends React.Component {
 
 
     render() {
-        const {data: initialData, type} = this.props;
+        const {data: initialData, type, ratio} = this.props;
         const {emaPeriod, smaPeriod, rsiPeriod, isEma, isSma, isRsi} = this.state;
         console.log(this.props);
 
         const emaCustom = ema()
             .options({windowSize: +emaPeriod})
             .merge((d, c) => {
-                d.emaCustom = c
+                d.WGC4.emaCustom = c
             })
-            .accessor(d => d.emaCustom);
+            .accessor(d => d.WGC4.emaCustom);
 
         const smaCustom = sma()
             .options({
                 windowSize: +smaPeriod,
             })
             .merge((d, c) => {
-                d.smaCustom = c
+                d.WGC4.smaCustom = c
             })
-            .accessor(d => d.smaCustom);
+            .accessor(d => d.WGC4.smaCustom);
 
         const rsiCalculator = rsi()
             .options({windowSize: +rsiPeriod})
             .merge((d, c) => {
-                d.rsi = c;
+                d.WGC4.rsi = c;
             })
-            .accessor(d => d.rsi);
+            .accessor(d => d.WGC4.rsi);
 
         const macdCalculator = macd()
             .options({
@@ -133,12 +134,13 @@ class ChartNew extends React.Component {
                 signal: 9,
             })
             .merge((d, c) => {
-                d.macd = c;
+                d.WGC4.macd = c;
             })
-            .accessor(d => d.macd);
+            .accessor(d => d.WGC4.macd);
 
 
         const calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))));
+
         const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(d => d.date);
 
         const {
@@ -148,7 +150,7 @@ class ChartNew extends React.Component {
             displayXAccessor,
         } = xScaleProvider(calculatedData);
 
-        // console.log(`xScale - ${xScale} xAcc - ${xAccessor} displayXAcc - ${displayXAccessor}`)
+        // console.log(data);
 
         return (
             // <div>123</div>
@@ -215,24 +217,26 @@ class ChartNew extends React.Component {
                                          seriesName='name'
                                          xScale={xScale}
                                          data={data}
-                                         ratio={2}
+                                         ratio={ratio}
                                          panEvent={true}
                                          height={800}
-                                         width={500}
+                                         width={550}
                                          xExtents={[0, 100]}>
 
                                 <Chart id={1}
                                        height={200}
-                                       width={500}
-                                       yExtents={[d => d.close, emaCustom.accessor(), smaCustom.accessor()]}>
+                                       yExtents={[d => d.WGC4.close, emaCustom.accessor(), smaCustom.accessor()]}>
 
                                     <XAxis axisAt="bottom" orient="bottom"/>
-                                    <YAxis axisAt="left" orient="left" ticks={2}/>
+                                    <YAxis axisAt="right" orient="right" ticks={2}/>
 
-                                    <LineSeries yAccessor={d => d.close} stroke="#4286f4"/>
+                                    <LineSeries yAccessor={d => d.WGC4.close} stroke="#4286f4"/>
+                                    {/*<LineSeries yAccessor={d => d.WGC4.close} stroke="#4236f4"/>*/}
+
 
                                     {isEma ? <LineSeries yAccessor={emaCustom.accessor()} stroke="#00F300"/> : null}
                                     {isSma ? <LineSeries yAccessor={smaCustom.accessor()} stroke="#FF0000"/> : null}
+
 
 
                                     {/*<CandlestickSeries/>*/}
@@ -243,14 +247,14 @@ class ChartNew extends React.Component {
                                 </Chart>
 
                                 <Chart id={2}
-                                       yExtents={d => d.volume}
+                                       yExtents={d => d.WGC4.volume}
                                        height={200}
                                        origin={(w, h) => [0, h - 550]}
                                 >
                                     <XAxis axisAt="bottom" orient="bottom"/>
-                                    <YAxis axisAt="left" orient="left" ticks={2}/>
+                                    <YAxis axisAt="right" orient="right" ticks={2}/>
 
-                                    <BarSeries yAccessor={d => d.volume}/>
+                                    <BarSeries yAccessor={d => d.WGC4.volume}/>
                                 </Chart>
 
                                 {isRsi ?
@@ -260,9 +264,11 @@ class ChartNew extends React.Component {
                                             origin={(w, h) => [0, h - 300]}
                                     >
                                         <XAxis/>
-                                        <YAxis tickValues={[30, 50, 70]}/>
+                                        <YAxis axisAt='right' orient='right' tickValues={[30, 50, 70]}/>
 
                                         <RSISeries yAccessor={rsiCalculator.accessor()}/>
+
+                                        <RSITooltip origin={[8, 16]} yAccessor={rsiCalculator.accessor()} options={rsiCalculator.options()}/>
 
                                     </Chart>) : null}
 

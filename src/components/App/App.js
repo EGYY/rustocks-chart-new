@@ -10,7 +10,7 @@ function App() {
 
     useEffect(() => {
         // getData().then(data => {setData(data)});
-        getDataRustocks().then(data => setData(data.parsedData));
+        getDataRustocks().then(data => setData(data));
     }, []);
 
 
@@ -20,9 +20,26 @@ function App() {
         );
     }
 
+    const formatedData = data.map(item => {
+        return {
+            ...item,
+            date: new Date(+item.date),
+            open: item.WGC4.open,
+            high: item.WGC4.high,
+            low: item.WGC4.low,
+            close: item.WGC4.close,
+            volume: item.WGC4.volume,
+            volume2: item.WGC4.volume2
+        }
+    })
+
+    console.log(formatedData)
+
+
+
     return (
         <div className="App">
-            <Chart type="hybrid" data={data}/>
+            <Chart type="hybrid" data={formatedData}/>
         </div>
     );
 }
