@@ -47,7 +47,10 @@ class ChartNew extends React.Component {
             isMacd: true,
             emaPeriod: 5,
             smaPeriod: 5,
-            rsiPeriod: 5
+            rsiPeriod: 5,
+            slowMacdPeriod: 26,
+            fastMacdPeriod: 12,
+            signalMacdPeriod: 9
         }
     }
 
@@ -70,9 +73,16 @@ class ChartNew extends React.Component {
                     isRsi: !this.state.isRsi
                 });
                 return;
+
+            case 'macd':
+                this.setState({
+                    isMacd: !this.state.isMacd
+                });
+                return;
         }
 
     }
+
 
     changePeriod(type, e) {
         const period = e.target.value;
@@ -94,15 +104,50 @@ class ChartNew extends React.Component {
                     rsiPeriod: +period
                 });
                 return;
+
+            case 'fast':
+                this.setState({
+                    fastMacdPeriod: +period
+                });
+                return;
+
+            case 'slow':
+                this.setState({
+                    slowMacdPeriod: +period
+                });
+                return;
+
+            case 'signal':
+                this.setState({
+                    signalMacdPeriod: +period
+                });
+                return;
         }
 
     }
 
 
     render() {
-        const {data: initialData, type, ratio} = this.props;
-        const {emaPeriod, smaPeriod, rsiPeriod, isEma, isSma, isRsi} = this.state;
+        const {data: initialData, type, ratio, arrPapers} = this.props;
+        const {emaPeriod, smaPeriod, rsiPeriod, slowMacdPeriod, fastMacdPeriod, signalMacdPeriod, isEma, isSma, isRsi, isMacd} = this.state;
         console.log(this.props);
+
+        const renderCheckboxeTickers = arrPapers.map((item, index)=> {
+            return(
+                <FormControlLabel
+                    key={index}
+                    control={
+                        <Checkbox
+                            // checked={this.state.isMoex}
+                            // onChange={() => this.handleMoex()}
+                            name={`${item.ticker}`}
+                            color="primary"
+                        />
+                    }
+                    label={`${item.index}: ${item.ticker}`}
+                />
+            )
+        });
 
         const emaCustom = ema()
             .options({windowSize: +emaPeriod})
@@ -129,9 +174,9 @@ class ChartNew extends React.Component {
 
         const macdCalculator = macd()
             .options({
-                fast: 12,
-                slow: 26,
-                signal: 9,
+                fast: fastMacdPeriod,
+                slow: slowMacdPeriod,
+                signal: signalMacdPeriod,
             })
             .merge((d, c) => {
                 d.WGC4.macd = c;
@@ -163,17 +208,18 @@ class ChartNew extends React.Component {
                                     <div className="iframe-filter__title">
                                         Акции
                                     </div>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                // checked={this.state.isMoex}
-                                                // onChange={() => this.handleMoex()}
-                                                name="MOEX"
-                                                color="primary"
-                                            />
-                                        }
-                                        label="MOEX: UPRO"
-                                    />
+                                    {renderCheckboxeTickers}
+                                    {/*<FormControlLabel*/}
+                                    {/*    control={*/}
+                                    {/*        <Checkbox*/}
+                                    {/*            // checked={this.state.isMoex}*/}
+                                    {/*            // onChange={() => this.handleMoex()}*/}
+                                    {/*            name="MOEX"*/}
+                                    {/*            color="primary"*/}
+                                    {/*        />*/}
+                                    {/*    }*/}
+                                    {/*    label="MOEX: UPRO"*/}
+                                    {/*/>*/}
                                 </div>
                                 <div className="iframe-filter__wrap">
                                     <div className="iframe-filter__title">
@@ -219,7 +265,7 @@ class ChartNew extends React.Component {
                                          data={data}
                                          ratio={ratio}
                                          panEvent={true}
-                                         height={800}
+                                         height={1000}
                                          width={550}
                                          xExtents={[0, 100]}>
 
@@ -238,7 +284,6 @@ class ChartNew extends React.Component {
                                     {isSma ? <LineSeries yAccessor={smaCustom.accessor()} stroke="#FF0000"/> : null}
 
 
-
                                     {/*<CandlestickSeries/>*/}
 
                                     {/*<BarSeries yAccessor={d => d.volume}*/}
@@ -249,7 +294,7 @@ class ChartNew extends React.Component {
                                 <Chart id={2}
                                        yExtents={d => d.WGC4.volume}
                                        height={200}
-                                       origin={(w, h) => [0, h - 550]}
+                                       origin={(w, h) => [0, h - 700]}
                                 >
                                     <XAxis axisAt="bottom" orient="bottom"/>
                                     <YAxis axisAt="right" orient="right" ticks={2}/>
@@ -261,14 +306,15 @@ class ChartNew extends React.Component {
                                     (<Chart id={3}
                                             height={200}
                                             yExtents={[0, 100]}
-                                            origin={(w, h) => [0, h - 300]}
+                                            origin={(w, h) => [0, h - 500]}
                                     >
                                         <XAxis/>
                                         <YAxis axisAt='right' orient='right' tickValues={[30, 50, 70]}/>
 
                                         <RSISeries yAccessor={rsiCalculator.accessor()}/>
 
-                                        <RSITooltip origin={[8, 16]} yAccessor={rsiCalculator.accessor()} options={rsiCalculator.options()}/>
+                                        <RSITooltip origin={[8, 16]} yAccessor={rsiCalculator.accessor()}
+                                                    options={rsiCalculator.options()}/>
 
                                     </Chart>) : null}
 
@@ -285,17 +331,18 @@ class ChartNew extends React.Component {
                                 {/*======================*/}
                                 {/*candlestickChart*/}
 
+                                {isMacd ? (
+                                    <Chart id={4}
+                                           height={200}
+                                           yExtents={macdCalculator.accessor()}
+                                           origin={(w, h) => [0, h - 300]}>
+                                        <XAxis axisAt="bottom" orient="bottom"/>
+                                        <YAxis axisAt="right" orient="right" ticks={2}/>
+                                        <MACDSeries yAccessor={macdCalculator.accessor()}
+                                                    {...macdAppearance} />
+                                    </Chart>) : null}
 
-                                {/*<Chart id={2}*/}
-                                {/*       height={200}*/}
-                                {/*       width={500}*/}
-                                {/*       yExtents={macdCalculator.accessor()}*/}
-                                {/*       origin={(w, h) => [0, h - 200]}>*/}
-                                {/*    <XAxis axisAt="bottom" orient="bottom"/>*/}
-                                {/*    <YAxis axisAt="right" orient="right" ticks={2}/>*/}
-                                {/*    <MACDSeries yAccessor={d => d.macd}*/}
-                                {/*                {...macdAppearance} />*/}
-                                {/*</Chart>*/}
+
                                 <CrossHairCursor/>
                             </ChartCanvas>
                         </div>
@@ -459,32 +506,32 @@ class ChartNew extends React.Component {
                                         <FormControlLabel
                                             control={
                                                 <Checkbox
-                                                    // checked={this.state.isMacd}
+                                                    checked={isMacd}
                                                     name="MACD"
                                                     color="primary"
                                                 />
                                             }
                                             label="MACD"
-                                            // onChange={() => this.macdHandleChange()}
+                                            onChange={() => this.handleChangeIndicator('macd')}
                                         />
                                     </div>
                                     <input className="iframe-input"
-                                        // defaultValue={fastMacd}
-                                        // type='number'
-                                        // onChange={(e) => this.props.changePeriod('fast', e.target.value)}
+                                        defaultValue={fastMacdPeriod}
+                                        type='number'
+                                        onChange={(e) => this.changePeriod('fast', e)}
                                     />
                                     <input className="iframe-input"
-                                        // defaultValue={slowMacd}
-                                        // type='number'
-                                        // onChange={(e) => this.props.changePeriod('slow', e.target.value)}
+                                        defaultValue={slowMacdPeriod}
+                                        type='number'
+                                        onChange={(e) => this.changePeriod('slow', e)}
                                     />
                                 </div>
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__signal">Signal</div>
                                     <input className="iframe-input"
-                                        // defaultValue={signalMacd}
-                                        // type='number'
-                                        // onChange={(e) => this.props.changePeriod('signal', e.target.value)}
+                                        defaultValue={signalMacdPeriod}
+                                        type='number'
+                                        onChange={(e) => this.changePeriod('signal', e)}
                                     />
                                 </div>
                             </div>

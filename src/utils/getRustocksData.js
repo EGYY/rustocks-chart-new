@@ -2,6 +2,7 @@
 const parseData = (data) => {
     let parsedData = [];
 
+
     for (let i = 0; i < data.length; i++) {
 
         for (const [key, value] of Object.entries(data[i].values)) {
@@ -51,15 +52,28 @@ const getDataRustocks = async () => {
 
     const result = await response.json();
 
+    const arrPapers = result.map(item => {
+        return {
+            index: item.code,
+            ticker: item.ticker
+        }
+    });
+
     const data = parseData(result);
 
     data.sort((a, b) => (a.date > b.date) ? 1 : -1);
 
     data.reduce((prev, curr) => {
         return prev.date == curr.date ? newData.push({...prev, ...curr}): curr
-    }, [])
+    }, []);
 
-    return newData;
+
+
+
+    return {
+        data:newData,
+        arrPapers
+    };
 }
 
 export {

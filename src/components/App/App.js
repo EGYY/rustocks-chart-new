@@ -7,14 +7,18 @@ import {getDataRustocks} from "../../utils/getRustocksData";
 
 function App() {
     const [data, setData] = useState([]);
+    const [arrPapers, serArrPapers] = useState([]);
 
     useEffect(() => {
         // getData().then(data => {setData(data)});
-        getDataRustocks().then(data => setData(data));
+        getDataRustocks().then(data => {
+            setData(data.data);
+            serArrPapers(data.arrPapers);
+        });
     }, []);
 
 
-    if (data.length === 0) {
+    if (data.length === 0 || arrPapers.length === 0) {
         return (
             <Spinner/>
         );
@@ -33,13 +37,13 @@ function App() {
         }
     })
 
-    console.log(formatedData)
+    console.log(arrPapers)
 
 
 
     return (
         <div className="App">
-            <Chart type="hybrid" data={formatedData}/>
+            <Chart type="hybrid" data={formatedData} arrPapers={arrPapers}/>
         </div>
     );
 }
