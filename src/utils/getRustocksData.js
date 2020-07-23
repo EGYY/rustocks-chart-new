@@ -24,7 +24,7 @@ const parseData = (data) => {
     return parsedData;
 }
 
-const getDataRustocks = async () => {
+const getDataRustocks = async (timeGap) => {
     let newData = [];
 
     const proxy = 'https://cors-anywhere.herokuapp.com/';
@@ -32,16 +32,16 @@ const getDataRustocks = async () => {
         {
             "code": "MICEX",
             "ticker": "WGC4",
-            "timegap": "1d",
-            "from": 1293829200,
-            "to": 1593205200
+            "timegap": timeGap,
+            // "from": 1293829200,
+            // "to": 1593205200
         },
         {
             "code": "MICEX",
             "ticker": "SNGS",
-            "timegap": "1d",
-            "from": 1293829200,
-            "to": 1593205200
+            "timegap": timeGap,
+            // "from": 1293829200,
+            // "to": 1593205200
         }
     ];
 
@@ -51,6 +51,8 @@ const getDataRustocks = async () => {
     });
 
     const result = await response.json();
+
+    console.log(result);
 
     const arrPapers = result.map(item => {
         return {
@@ -66,8 +68,6 @@ const getDataRustocks = async () => {
     data.reduce((prev, curr) => {
         return prev.date == curr.date ? newData.push({...prev, ...curr}): curr
     }, []);
-
-
 
 
     return {

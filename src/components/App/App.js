@@ -7,15 +7,23 @@ import {getDataRustocks} from "../../utils/getRustocksData";
 
 function App() {
     const [data, setData] = useState([]);
+    const [timeGap, setTimeGap] = useState('1d');
     const [arrPapers, serArrPapers] = useState([]);
+    const [isLoading, setLoading] = useState(true);
 
     useEffect(() => {
         // getData().then(data => {setData(data)});
-        getDataRustocks().then(data => {
+        getDataRustocks(timeGap).then(data => {
+            setLoading(false);
             setData(data.data);
             serArrPapers(data.arrPapers);
         });
-    }, []);
+    }, [timeGap]);
+
+    const changeDataByTimeGap = (gap) => {
+        setTimeGap(gap);
+        setLoading(true);
+    }
 
 
     if (data.length === 0 || arrPapers.length === 0) {
@@ -23,6 +31,8 @@ function App() {
             <Spinner/>
         );
     }
+
+
 
     const formatedData = data.map(item => {
         return {
@@ -37,13 +47,19 @@ function App() {
         }
     })
 
-    console.log(arrPapers)
+    // console.log(arrPapers)
+
 
 
 
     return (
         <div className="App">
-            <Chart type="hybrid" data={formatedData} arrPapers={arrPapers}/>
+            <Chart type="hybrid"
+                   isLoading={isLoading}
+                   data={formatedData}
+                   arrPapers={arrPapers}
+                   changeDataByTimeGap={changeDataByTimeGap}
+            />
         </div>
     );
 }
