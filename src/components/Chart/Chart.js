@@ -3,11 +3,9 @@ import React from "react";
 import {timeFormat} from "d3-time-format";
 import {format} from "d3-format";
 
+
 import {ChartCanvas, Chart} from "react-financial-charts";
 import {XAxis, YAxis} from "react-financial-charts/lib/axes";
-import {discontinuousTimeScaleProvider} from "react-financial-charts/lib/scale";
-import {last} from "react-financial-charts/lib/utils";
-
 import {
     BarSeries,
     LineSeries,
@@ -17,6 +15,9 @@ import {
     AreaSeries,
     OHLCSeries
 } from "react-financial-charts/lib/series";
+import {discontinuousTimeScaleProvider} from "react-financial-charts/lib/scale";
+import { withDeviceRatio, withSize } from "@react-financial-charts/utils";
+import {last} from "react-financial-charts/lib/utils";
 import {RSITooltip, HoverTooltip} from "react-financial-charts/lib/tooltip";
 import {
     CrossHairCursor,
@@ -24,7 +25,7 @@ import {
     MouseCoordinateX,
     MouseCoordinateY
 } from "react-financial-charts/lib/coordinates";
-import {withDeviceRatio} from "react-financial-charts/lib/utils";
+// import {withDeviceRatio} from "react-financial-charts/lib/utils";
 import {ema, macd, sma, rsi} from "react-financial-charts/lib/indicator";
 
 import {TrendLine} from "react-stockcharts/lib/interactive";
@@ -42,10 +43,11 @@ import Select from '@material-ui/core/Select';
 
 import './chart.scss';
 import Spinner from "../Spinner/Spinner";
+import DownloadExelBtn from "../DownloadExelBtn/DownloadExelBtn";
 
 
-
-
+const numberFormat = format(".2f");
+const dateFormat = timeFormat("%I:%M");
 const macdAppearance = {
     stroke: {
         macd: "#FF0000",
@@ -55,6 +57,40 @@ const macdAppearance = {
         divergence: "#4682B4"
     },
 };
+
+const tooltipContent = (ys) => {
+    return ({currentItem, xAccessor}) => {
+        return {
+            x: dateFormat(xAccessor(currentItem)),
+            y: [
+                {
+                    label: "open",
+                    value: currentItem.open && numberFormat(currentItem.open)
+                },
+                {
+                    label: "high",
+                    value: currentItem.high && numberFormat(currentItem.high)
+                },
+                {
+                    label: "low",
+                    value: currentItem.low && numberFormat(currentItem.low)
+                },
+                {
+                    label: "close",
+                    value: currentItem.close && numberFormat(currentItem.close)
+                }
+            ]
+                .concat(
+                    ys.map(each => ({
+                        label: each.label,
+                        value: each.value(currentItem),
+                        stroke: each.stroke
+                    }))
+                )
+                .filter(line => line.value)
+        };
+    };
+}
 
 class ChartNew extends React.Component {
     constructor(props) {
@@ -288,6 +324,7 @@ class ChartNew extends React.Component {
         let start, end;
 
         const {data: initialData, type, ratio, arrPapers} = this.props;
+        console.log(this.props)
         const {
             emaPeriod,
             smaPeriod,
@@ -576,8 +613,27 @@ class ChartNew extends React.Component {
                                             ) : null}
 
 
-                                            <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
+
                                             <MouseCoordinateY displayFormat={format(".2f")}/>
+
+                                            <HoverTooltip
+                                                yAccessor={emaCustom.accessor()}
+                                                tooltipContent={tooltipContent([
+                                                    {
+                                                        label: `${emaCustom.type()}(${emaCustom.options()
+                                                            .windowSize})`,
+                                                        value: d => numberFormat(emaCustom.accessor()(d)),
+                                                        stroke: emaCustom.stroke()
+                                                    },
+                                                    {
+                                                        label: `${smaCustom.type()}(${smaCustom.options()
+                                                            .windowSize})`,
+                                                        value: d => numberFormat(smaCustom.accessor()(d)),
+                                                        stroke: smaCustom.stroke()
+                                                    }
+                                                ])}
+                                                fontSize={15}
+                                            />
 
                                             {/*Current close visualisation*/}
 
@@ -620,7 +676,6 @@ class ChartNew extends React.Component {
                                                     {/*<RSITooltip origin={[8, 16]} yAccessor={rsiCalculator.accessor()}*/}
                                                     {/*            options={rsiCalculator.options()}/>*/}
 
-                                                    <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
 
                                                 </Chart>
@@ -639,8 +694,9 @@ class ChartNew extends React.Component {
                                                 <MACDSeries yAccessor={macdCalculator.accessor()}
                                                             {...macdAppearance} />
 
-                                                {/*<MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>*/}
+                                                <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
                                                 <MouseCoordinateY displayFormat={format(".2f")}/>
+
                                             </Chart>
                                         ) : null}
 
@@ -866,13 +922,14 @@ class ChartNew extends React.Component {
                                 </div>
                             </div>
                             <div className="iframe-filter__block">
-                                {/*<DownloadExelBtn data={data}/>*/}
-                                {/*<Button variant="contained" color="primary">*/}
-                                {/*    Развернуть график*/}
-                                {/*</Button>*/}
-                                {/*<Button variant="contained" color="primary" onClick={() => window.print()}>*/}
-                                {/*    Распечатать график*/}
-                                {/*</Button>*/}
+                                {/*<DownloadExelBtn data={data.WGC4}/>*/}
+                                <DownloadExelBtn data={data.WGC4}/>
+                                <Button variant="contained" color="primary">
+                                    Развернуть график
+                                </Button>
+                                <Button variant="contained" color="primary" onClick={() => window.print()}>
+                                    Распечатать график
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -885,3 +942,4 @@ class ChartNew extends React.Component {
 
 
 export default withDeviceRatio()(ChartNew);
+// export default withSize({ style: { minHeight: 600 } })(withDeviceRatio()(ChartNew));
