@@ -6,7 +6,8 @@ import {format} from "d3-format";
 import {ChartCanvas, Chart} from "react-financial-charts";
 import {XAxis, YAxis} from "react-financial-charts/lib/axes";
 import {discontinuousTimeScaleProvider} from "react-financial-charts/lib/scale";
-import {StraightLine} from "react-financial-charts/lib/series";
+import {last} from "react-financial-charts/lib/utils";
+
 import {
     BarSeries,
     LineSeries,
@@ -26,6 +27,8 @@ import {
 import {withDeviceRatio} from "react-financial-charts/lib/utils";
 import {ema, macd, sma, rsi} from "react-financial-charts/lib/indicator";
 
+import {TrendLine} from "react-stockcharts/lib/interactive";
+import createTrend from 'trendline';
 
 import FormGroup from '@material-ui/core/FormGroup';
 import TextField from '@material-ui/core/TextField';
@@ -39,7 +42,8 @@ import Select from '@material-ui/core/Select';
 
 import './chart.scss';
 import Spinner from "../Spinner/Spinner";
-import {TrendLine} from "react-financial-charts/lib/interactive";
+
+
 
 
 const macdAppearance = {
@@ -56,6 +60,9 @@ class ChartNew extends React.Component {
     constructor(props) {
         super(props);
 
+        this.chartRef = React.createRef();
+        this.handleEvents = this.handleEvents.bind(this);
+
         this.state = {
             isWGC4: true,
             isSNGS: false,
@@ -66,6 +73,7 @@ class ChartNew extends React.Component {
             isMacd: true,
             isTotalIncome: false,
             isDatePicker: false,
+            isTrendLine: false,
             emaPeriod: 5,
             smaPeriod: 5,
             rsiPeriod: 5,
@@ -77,6 +85,24 @@ class ChartNew extends React.Component {
             yMin: null,
             typeChart: 'close-chart',
             timeGap: '1d'
+        }
+    }
+
+    componentDidMount() {
+        // this.chartRef.subscribe('scrollChart', {listener: this.handleEvents})
+    }
+
+    componentWillUnmount() {
+        // this.chartRef.unsubscribe('scrollChart');
+    }
+
+    handleEvents(type, props, state) {
+
+        switch (type) {
+            case 'pan':
+                const {plotData} = state;
+                this.setPlotData(state);
+                break;
         }
     }
 
@@ -98,55 +124,62 @@ class ChartNew extends React.Component {
         });
     }
 
+
     handleChangeCheckbox(type) {
         switch (type) {
             case 'WGC4':
                 this.setState({
                     isWGC4: !this.state.isWGC4
                 });
-                return;
+                break;
 
             case 'SNGS':
                 this.setState({
                     isSNGS: !this.state.isSNGS
                 });
-                return;
+                break;
 
             case 'min-max':
                 this.setState({
                     isMinMax: !this.state.isMinMax
                 });
-                return;
+                break;
+
+            case 'trend-line':
+                this.setState({
+                    isTrendLine: !this.state.isTrendLine
+                });
+                break;
 
             case 'ema':
                 this.setState({
                     isEma: !this.state.isEma
                 });
-                return;
+                break;
 
             case 'total-income':
                 this.setState({
                     isTotalIncome: !this.state.isTotalIncome
                 });
-                return;
+                break;
 
             case 'sma':
                 this.setState({
                     isSma: !this.state.isSma
                 });
-                return;
+                break;
 
             case 'rsi':
                 this.setState({
                     isRsi: !this.state.isRsi
                 });
-                return;
+                break;
 
             case 'macd':
                 this.setState({
                     isMacd: !this.state.isMacd
                 });
-                return;
+                break;
         }
 
     }
@@ -164,46 +197,46 @@ class ChartNew extends React.Component {
                 this.setState({
                     typeChart: type
                 });
-                return;
+                break;
 
             case 'candle-chart':
                 this.setState({
                     typeChart: type
                 });
-                return;
+                break;
 
             case 'ohl-chart':
                 this.setState({
                     typeChart: type
                 });
-                return;
+                break;
 
             case 'area-chart':
                 this.setState({
                     typeChart: type
                 });
-                return;
+                break;
 
             case '5m':
                 this.setState({
                     timeGap: type
                 });
                 this.props.changeDataByTimeGap(type);
-                return;
+                break;
 
             case '1d':
                 this.setState({
                     timeGap: type
                 });
                 this.props.changeDataByTimeGap(type);
-                return;
+                break;
 
             case '1month':
                 this.setState({
                     timeGap: type
                 });
                 this.props.changeDataByTimeGap(type);
-                return;
+                break;
         }
     }
 
@@ -215,43 +248,45 @@ class ChartNew extends React.Component {
                 this.setState({
                     emaPeriod: +period
                 });
-                return;
+                break;
 
             case 'sma':
                 this.setState({
                     smaPeriod: +period
                 });
-                return;
+                break;
 
             case 'rsi':
                 this.setState({
                     rsiPeriod: +period
                 });
-                return;
+                break;
 
             case 'fast':
                 this.setState({
                     fastMacdPeriod: +period
                 });
-                return;
+                break;
 
             case 'slow':
                 this.setState({
                     slowMacdPeriod: +period
                 });
-                return;
+                break;
 
             case 'signal':
                 this.setState({
                     signalMacdPeriod: +period
                 });
-                return;
+                break;
         }
 
     }
 
 
     render() {
+        let start, end;
+
         const {data: initialData, type, ratio, arrPapers} = this.props;
         const {
             emaPeriod,
@@ -267,15 +302,16 @@ class ChartNew extends React.Component {
             isRsi,
             isMacd,
             isDatePicker,
+            isTrendLine,
             typeChart,
             isTotalIncome,
             yMax,
             yMin,
-            timeGap
+            timeGap,
+            plotData
         } = this.state;
 
         // console.log(initialData);
-
 
         const renderCheckboxTickers = arrPapers.map((item, index) => {
             const checked = `is${item.ticker}`
@@ -301,20 +337,27 @@ class ChartNew extends React.Component {
                     return (
                         <LineSeries yAccessor={d => d.WGC4.close} stroke="#4286f4"/>
                     );
+                    break;
+
                 case "candle-chart":
                     return (
                         <CandlestickSeries/>
                     );
+                    break;
+
                 case "ohl-chart":
                     return (
                         <OHLCSeries stroke="#529aff"/>
                     );
+                    break;
+
                 case 'area-chart':
                     return (
                         <AreaSeries
                             yAccessor={d => d.WGC4.close}
                         />
                     );
+                    break;
             }
 
         }
@@ -365,7 +408,45 @@ class ChartNew extends React.Component {
             displayXAccessor,
         } = xScaleProvider(calculatedData);
 
-        // console.log(data);
+
+        if (plotData.length === 0) {
+            start = xAccessor(last(data));
+            end = xAccessor(data[0]);
+        } else {
+            start = xAccessor(last(plotData));
+            end = xAccessor(plotData[0]);
+        }
+
+        const xExtents = [start, end];
+
+        const dataTrend = initialData.slice(end, start);
+        const timeStamps = dataTrend.map(item => +item.date);
+
+        const xMax = Math.max(...timeStamps);
+        const xMin = Math.min(...timeStamps);
+
+        const dataForTrendLine = dataTrend.map(item => {
+            return {
+                close: item.close,
+                date: +item.date
+            }
+        })
+
+
+
+        const trend = createTrend(dataForTrendLine, 'date', 'close')
+
+
+        const trendData = () => {
+            return [
+                {
+                    start: [start, trend.calcY(xMax)],
+                    end: [end, trend.calcY(xMin)],
+                    appearance: {stroke: "green"},
+                    type: "XLINE"
+                }
+            ];
+        }
 
         return (
             // <div>123</div>
@@ -429,9 +510,11 @@ class ChartNew extends React.Component {
                             </div>
                             {
                                 this.props.isLoading ? <Spinner/> : (
-                                    <ChartCanvas ref='chartCanvas'
+                                    <ChartCanvas ref={(chart) => {
+                                        this.chartRef = chart
+                                    }}
                                                  margin={{left: 60, right: 60, top: 20, bottom: 24}}
-                                                 onSelect={() => this.setPlotData(this.refs.chartCanvas.getDataInfo())}
+                                                 onSelect={() => this.setPlotData(this.chartRef.getDataInfo())}
                                                  displayXAccessor={displayXAccessor}
                                                  xAccessor={xAccessor}
                                                  type={type}
@@ -442,7 +525,7 @@ class ChartNew extends React.Component {
                                                  panEvent={true}
                                                  height={1000}
                                                  width={550}
-                                                 xExtents={[0, 100]}>
+                                                 xExtents={[0,100]}>
 
 
                                         <Chart id={1}
@@ -462,8 +545,15 @@ class ChartNew extends React.Component {
                                             {renderChartFromType()}
 
 
-                                            {/*<TrendLine />*/}
-
+                                            {isTrendLine ? (
+                                                <TrendLine
+                                                    type="RAY"
+                                                    enabled={false}
+                                                    snap={false}
+                                                    trends={trendData()}
+                                                />
+                                            ) : null
+                                            }
 
                                             {isTotalIncome ? <AreaSeries yAccessor={d => d.WGC4.close}/> : null}
                                             {isSNGS ?
@@ -554,7 +644,6 @@ class ChartNew extends React.Component {
                                             </Chart>
                                         ) : null}
 
-
                                         <CrossHairCursor/>
                                     </ChartCanvas>
                                 )
@@ -568,7 +657,6 @@ class ChartNew extends React.Component {
                                      onClick={(e) => {
                                          e.preventDefault();
                                          this.toggleDatePicker();
-
                                      }
                                      }
                                 >
@@ -644,7 +732,7 @@ class ChartNew extends React.Component {
                                             }
                                             label="Мин/Макс"
                                             onChange={() => {
-                                                this.setPlotData(this.refs.chartCanvas.getDataInfo())
+                                                this.setPlotData(this.chartRef.getDataInfo())
                                                 this.handleChangeCheckbox('min-max');
                                             }}
                                         />
@@ -655,13 +743,13 @@ class ChartNew extends React.Component {
                                         <FormControlLabel
                                             control={
                                                 <Checkbox
-                                                    // checked={this.state.isTrendLine}
+                                                    checked={isTrendLine}
                                                     name="trend-line"
                                                     color="primary"
                                                 />
                                             }
                                             label="Тренд"
-                                            // onChange={() => this.trendLineHandleChange()}
+                                            onChange={() => this.handleChangeCheckbox('trend-line')}
                                         />
                                     </div>
                                 </div>

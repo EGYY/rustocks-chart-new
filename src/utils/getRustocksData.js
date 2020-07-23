@@ -26,6 +26,13 @@ const parseData = (data) => {
 
 const getDataRustocks = async (timeGap) => {
     let newData = [];
+    // 2016-1-1 1454270400000
+    // 2016-2-1 1456776000000
+
+    // 2020-07-23
+    const from = 1597435200000;
+    // 2020-07-15
+    const to = 1598126400000;
 
     const proxy = 'https://cors-anywhere.herokuapp.com/';
     const body = [
