@@ -1,33 +1,56 @@
+import * as _ from 'lodash';
 
 const parseData = (data) => {
     let parsedData = [];
-
+    let groupedData = [];
 
     for (let i = 0; i < data.length; i++) {
 
         for (const [key, value] of Object.entries(data[i].values)) {
-            parsedData.push({
-                date: +key,
-                [data[i].ticker]: {
-                    open: +value[0],
-                    high: +value[1],
-                    low: +value[2],
-                    close: +value[3],
-                    volume: +value[4],
-                    volume2: +value[5]
-                }
-            });
+            if (data[i].code && data[i].ticker) {
+                parsedData.push({
+                    date: +key,
+                    [data[i].ticker]: {
+                        open: +value[0],
+                        high: +value[1],
+                        low: +value[2],
+                        close: +value[3],
+                        volume: +value[4],
+                        volume2: +value[5]
+                    }
+                });
+            } else {
+                parsedData.push({
+                    date: +key,
+                    [data[i].code]: {
+                        open: +value[0],
+                        high: +value[1],
+                        low: +value[2],
+                        close: +value[3],
+                        volume: +value[4],
+                        volume2: +value[5]
+                    }
+                });
+            }
+
         }
     }
 
+    const formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
 
-    return parsedData;
+
+    // parsedData.sort((a, b) => (a.date > b.date) ? 1 : -1);
+    //
+    // parsedData.reduce((prev, curr, index, arr) => {
+    //     return prev.date == curr.date ? groupedData.push({...prev, ...curr}) : curr
+    // }, []);
+
+    return formatData;
 }
 
 const getDataRustocks = async (timeGap) => {
     let newData = [];
-    // 2016-1-1 1454270400000
-    // 2016-2-1 1456776000000
+
 
     // 2020-07-23
     const from = 1597435200000;
@@ -37,18 +60,24 @@ const getDataRustocks = async (timeGap) => {
     const proxy = 'https://cors-anywhere.herokuapp.com/';
     const body = [
         {
+            "code": "MICEXC",
+            "timegap": timeGap,
+            "from": 1293829200,
+            "to": 1593205200
+        },
+        {
             "code": "MICEX",
             "ticker": "WGC4",
             "timegap": timeGap,
-            // "from": 1293829200,
-            // "to": 1593205200
+            "from": 1293829200,
+            "to": 1593205200
         },
         {
             "code": "MICEX",
             "ticker": "SNGS",
             "timegap": timeGap,
-            // "from": 1293829200,
-            // "to": 1593205200
+            "from": 1293829200,
+            "to": 1593205200
         }
     ];
 
@@ -62,23 +91,21 @@ const getDataRustocks = async (timeGap) => {
     console.log(result);
 
     const arrPapers = result.map(item => {
-        return {
-            index: item.code,
-            ticker: item.ticker
+        if (item.code && item.ticker) {
+            return {
+                stock: [item.code, item.ticker]
+            }
+        } else {
+            return {
+                index: item.code
+            }
         }
     });
 
-    const data = parseData(result);
-
-    data.sort((a, b) => (a.date > b.date) ? 1 : -1);
-
-    data.reduce((prev, curr) => {
-        return prev.date == curr.date ? newData.push({...prev, ...curr}): curr
-    }, []);
-
+    const data = parseData(result, arrPapers);
 
     return {
-        data:newData,
+        data,
         arrPapers
     };
 }

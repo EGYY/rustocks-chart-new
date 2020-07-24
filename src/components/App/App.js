@@ -33,24 +33,38 @@ function App() {
     }
 
 
+    const ticker = arrPapers.filter(item => item.stock)[0].stock[1];
+
 
     const formatedData = data.map(item => {
-        return {
-            ...item,
-            date: new Date(+item.date),
-            open: item.WGC4.open,
-            high: item.WGC4.high,
-            low: item.WGC4.low,
-            close: item.WGC4.close,
-            volume: item.WGC4.volume,
-            volume2: item.WGC4.volume2
+        if (item[ticker] === undefined) {
+            return {
+                ...item,
+                date: new Date(+item.date),
+                open: 0,
+                high: 0,
+                low: 0,
+                close: 0,
+                volume: 0,
+                volume2: 0
+            }
+        }else {
+            return {
+                ...item,
+                date: new Date(+item.date),
+                open: item[ticker].open,
+                high: item[ticker].high,
+                low: item[ticker].low,
+                close: item[ticker].close,
+                volume: item[ticker].volume,
+                volume2: item[ticker].volume2
+            }
         }
+
     })
-
+    //
     // console.log(arrPapers)
-
-
-
+    console.log(formatedData)
 
     return (
         <div className="App">
@@ -58,6 +72,7 @@ function App() {
                    isLoading={isLoading}
                    data={formatedData}
                    arrPapers={arrPapers}
+                   ticker={ticker}
                    changeDataByTimeGap={changeDataByTimeGap}
             />
         </div>

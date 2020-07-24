@@ -323,8 +323,7 @@ class ChartNew extends React.Component {
     render() {
         let start, end;
 
-        const {data: initialData, type, ratio, arrPapers} = this.props;
-        console.log(this.props)
+        const {data: initialData, type, ratio, arrPapers, ticker} = this.props;
         const {
             emaPeriod,
             smaPeriod,
@@ -348,22 +347,26 @@ class ChartNew extends React.Component {
             plotData
         } = this.state;
 
-        // console.log(initialData);
+        const renderIndexes = arrPapers.filter(item => item.index).map((item, i) => {
+           return(
+               <MenuItem key={i} value={`${item.index}`}>{item.index}</MenuItem>
+           )
+        });
 
-        const renderCheckboxTickers = arrPapers.map((item, index) => {
-            const checked = `is${item.ticker}`
+        const renderCheckboxTickers = arrPapers.filter(item => item.stock).map((item, index) => {
+            const checked = `is${item.stock[1]}`
             return (
                 <FormControlLabel
                     key={index}
                     control={
                         <Checkbox
                             checked={this.state[checked]}
-                            onChange={() => this.handleChangeCheckbox(item.ticker)}
-                            name={`${item.ticker}`}
+                            onChange={() => this.handleChangeCheckbox(item.stock[1])}
+                            name={`${item.stock[1]}`}
                             color="primary"
                         />
                     }
-                    label={`${item.index}: ${item.ticker}`}
+                    label={`${item.stock[0]}: ${item.stock[1]}`}
                 />
             )
         });
@@ -517,11 +520,13 @@ class ChartNew extends React.Component {
                                         <Select
                                             labelId="demo-simple-select-label"
                                             id="demo-simple-select"
-                                            value="1-index"
+                                            value="off-index"
                                             // onChange={(e) => this.typeCharthandleChange(e)}
                                         >
-                                            <MenuItem value='1-index'>ММВБ-энергетика</MenuItem>
-                                            <MenuItem value='2-index'>Индекс МосБиржи</MenuItem>
+                                            {/*<MenuItem value='1-index'>1-index</MenuItem>*/}
+                                            {/*<MenuItem value='2-index'>2-index</MenuItem>*/}
+                                            {renderIndexes}
+                                            <MenuItem value='off-index'>Выключить</MenuItem>
 
                                         </Select>
                                     </FormControl>
@@ -562,7 +567,7 @@ class ChartNew extends React.Component {
                                                  panEvent={true}
                                                  height={1000}
                                                  width={550}
-                                                 xExtents={[0,100]}>
+                                                 xExtents={[100,200]}>
 
 
                                         <Chart id={1}
@@ -577,7 +582,11 @@ class ChartNew extends React.Component {
                                                ]}>
 
                                             <XAxis axisAt="bottom" orient="bottom"/>
-                                            <YAxis axisAt="right" orient="right" ticks={2}/>
+                                            <YAxis axisAt="right"
+                                                   orient="right"
+                                                   ticks={4}
+                                                   // tickFormat={value => `${value / 100}%`}
+                                            />
 
                                             {renderChartFromType()}
 
