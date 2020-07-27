@@ -8,21 +8,21 @@ const parseData = (data) => {
 
 
     for (let i = 0; i < data.length; i++) {
-        const fisrtElemArr = Object.entries(data[i].values)[0][1][3];
+        const fisrtElArrClose = Object.entries(data[i].values)[0][1][3];
+        const firstElArrOpen = Object.entries(data[i].values)[0][1][0];
+        const firstElArrHigh = Object.entries(data[i].values)[0][1][1];
+        const firstElArrLow = Object.entries(data[i].values)[0][1][2];
         for (const [key, value] of Object.entries(data[i].values)) {
 
             if (data[i].code && data[i].ticker) {
                 parsedData.push({
                     date: +key,
                     percentData: {
-                        close: {
-                            [data[i].ticker]: (Math.round((+value[3] / +fisrtElemArr) * 100))
-                        },
-                        high: {
-                            [data[i].ticker]: (Math.round((+value[2] / +fisrtElemArr) * 100))
-                        },
-                        low: {
-                            [data[i].ticker]: (Math.round((+value[1] / +fisrtElemArr) * 100))
+                        [data[i].ticker]: {
+                            open: (Math.round((+value[0] / +firstElArrOpen) * 100)),
+                            high: (Math.round((+value[1] / +firstElArrHigh) * 100)),
+                            low: (Math.round((+value[3] / +firstElArrLow) * 100)),
+                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100)),
                         }
                     },
                     [data[i].ticker]: {
@@ -38,14 +38,11 @@ const parseData = (data) => {
                 parsedData.push({
                     date: +key,
                     percentData: {
-                        close: {
-                            [data[i].code]: (Math.round((+value[3] / +fisrtElemArr) * 100))
-                        },
-                        high: {
-                            [data[i].code]: (Math.round((+value[1] / +fisrtElemArr) * 100))
-                        },
-                        low: {
-                            [data[i].code]: (Math.round((+value[2] / +fisrtElemArr) * 100))
+                        [data[i].code]: {
+                            open: (Math.round((+value[0] / +firstElArrOpen) * 100)),
+                            high: (Math.round((+value[1] / +firstElArrHigh) * 100)),
+                            low: (Math.round((+value[3] / +firstElArrLow) * 100)),
+                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100)),
                         }
                     },
                     [data[i].code]: {
