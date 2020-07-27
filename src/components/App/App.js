@@ -35,7 +35,6 @@ function App() {
 
     const ticker = arrPapers.filter(item => item.stock)[0].stock[1];
 
-
     const formatedData = data.map(item => {
         if (item[ticker] === undefined) {
             return {
@@ -65,6 +64,8 @@ function App() {
     //
     // console.log(arrPapers)
     console.log(formatedData)
+
+
 
     return (
         <div className="App">

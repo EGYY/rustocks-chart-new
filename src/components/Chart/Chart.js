@@ -100,8 +100,8 @@ class ChartNew extends React.Component {
         this.handleEvents = this.handleEvents.bind(this);
 
         this.state = {
-            isWGC4: true,
-            isSNGS: false,
+            // isWGC4: true,
+            // isSNGS: false,
             isMinMax: false,
             isEma: false,
             isSma: false,
@@ -137,10 +137,21 @@ class ChartNew extends React.Component {
         switch (type) {
             case 'pan':
                 const {plotData} = state;
-                this.setPlotData(state);
+                // console.log(plotData)
+                const closeData = plotData.map(item => item.close);
+                const yMax = Math.max(...closeData);
+                const yMin = Math.min(...closeData);
+                console.log(yMax, yMin)
+                this.setState({
+                    yMax,
+                    yMin,
+                    plotData
+                })
                 break;
         }
     }
+
+
 
 
     setPlotData({plotData}) {
@@ -161,19 +172,30 @@ class ChartNew extends React.Component {
     }
 
 
+    handleChangeCheckboxCode(code) {
+        let key = `is${code}`;
+        let upd = {};
+        upd[key] = ! (this.state[key] || false);
+        console.log("CODE/UPD:", code, upd);
+        let newState = Object.assign({}, this.state, upd);
+        console.log(newState);
+        this.setState(newState);
+    }
+
+
     handleChangeCheckbox(type) {
         switch (type) {
-            case 'WGC4':
-                this.setState({
-                    isWGC4: !this.state.isWGC4
-                });
-                break;
-
-            case 'SNGS':
-                this.setState({
-                    isSNGS: !this.state.isSNGS
-                });
-                break;
+            // case 'WGC4':
+            //     this.setState({
+            //         isWGC4: !this.state.isWGC4
+            //     });
+            //     break;
+            //
+            // case 'SNGS':
+            //     this.setState({
+            //         isSNGS: !this.state.isSNGS
+            //     });
+            //     break;
 
             case 'min-max':
                 this.setState({
@@ -360,8 +382,8 @@ class ChartNew extends React.Component {
                     key={index}
                     control={
                         <Checkbox
-                            checked={this.state[checked]}
-                            onChange={() => this.handleChangeCheckbox(item.stock[1])}
+                            checked={this.state[checked] || false}
+                            onChange={() => this.handleChangeCheckboxCode(item.stock[1])}
                             name={`${item.stock[1]}`}
                             color="primary"
                         />
@@ -375,7 +397,7 @@ class ChartNew extends React.Component {
             switch (typeChart) {
                 case "close-chart":
                     return (
-                        <LineSeries yAccessor={d => d.WGC4.close} stroke="#4286f4"/>
+                        <LineSeries yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.close.WGC4 : d => d.WGC4.close} stroke="#4286f4"/>
                     );
                     break;
 
@@ -387,14 +409,14 @@ class ChartNew extends React.Component {
 
                 case "ohl-chart":
                     return (
-                        <OHLCSeries stroke="#529aff"/>
+                        <OHLCSeries  stroke="#529aff"/>
                     );
                     break;
 
                 case 'area-chart':
                     return (
                         <AreaSeries
-                            yAccessor={d => d.WGC4.close}
+                            yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.close.WGC4 : d => d.WGC4.close}
                         />
                     );
                     break;
@@ -405,9 +427,13 @@ class ChartNew extends React.Component {
         const emaCustom = ema()
             .options({windowSize: +emaPeriod})
             .merge((d, c) => {
-                d.WGC4.emaCustom = c
+                {
+                    d.percentData.emaCustom = c;
+                    d.WGC4.emaCustom = c;
+                }
+
             })
-            .accessor(d => d.WGC4.emaCustom);
+            .accessor(d => (this.state.isWGC4 && this.state.isSNGS) ? d.percentData.emaCustom : d.WGC4.emaCustom);
 
         const smaCustom = sma()
             .options({
@@ -435,7 +461,6 @@ class ChartNew extends React.Component {
                 d.WGC4.macd = c;
             })
             .accessor(d => d.WGC4.macd);
-
 
         const calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))));
 
@@ -488,8 +513,8 @@ class ChartNew extends React.Component {
             ];
         }
 
+
         return (
-            // <div>123</div>
             <div>
                 <div id="app">
                     <div className="iframe-wrap">
@@ -574,9 +599,10 @@ class ChartNew extends React.Component {
                                                height={200}
                                                width={500}
                                                yExtents={[
-                                                   d => [d.high, d.low],
-                                                   d => d.WGC4.close,
-                                                   this.state.isSNGS ? d => d.SNGS.close : null,
+                                                   (this.state.isWGC4 && this.state.isSNGS) ? d => [d.percentData.high.WGC4, d.percentData.low.WGC4] : d => [d.high, d.low],
+                                                   // d => d.WGC4.close,
+                                                   (this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.close.WGC4 : d => d.WGC4.close,
+                                                   (this.state.isWGC4 && this.state.isSNGS)  ? d => d.percentData.close.SNGS : this.state.isSNGS ? d => d.SNGS.close : null,
                                                    emaCustom.accessor(),
                                                    smaCustom.accessor()
                                                ]}>
@@ -588,8 +614,13 @@ class ChartNew extends React.Component {
                                                    // tickFormat={value => `${value / 100}%`}
                                             />
 
-                                            {renderChartFromType()}
+                                            {
+                                                this.state.isWGC4 ? renderChartFromType() : null
+                                            }
 
+                                            {}
+
+                                            {/*<LineSeries yAccessor={d => d.percentData.WGC4}/>*/}
 
                                             {isTrendLine ? (
                                                 <TrendLine
@@ -601,9 +632,9 @@ class ChartNew extends React.Component {
                                             ) : null
                                             }
 
-                                            {isTotalIncome ? <AreaSeries yAccessor={d => d.WGC4.close}/> : null}
+                                            {isTotalIncome ? <AreaSeries yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.close.WGC4 : d => d.WGC4.close}/> : null}
                                             {isSNGS ?
-                                                <LineSeries yAccessor={d => d.SNGS.close} stroke="#4236f4"/> : null}
+                                                <LineSeries yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.close.SNGS : d => d.SNGS.close} stroke="#4236f4"/> : null}
                                             {isEma ?
                                                 <LineSeries yAccessor={emaCustom.accessor()} stroke="#00F300"/> : null}
                                             {isSma ?
@@ -655,6 +686,7 @@ class ChartNew extends React.Component {
                                             {/*    yAccessor={d => d.close}*/}
                                             {/*/>*/}
                                         </Chart>
+
 
                                         <Chart id={2}
                                                yExtents={d => d.WGC4.volume}
@@ -798,7 +830,7 @@ class ChartNew extends React.Component {
                                             label="Мин/Макс"
                                             onChange={() => {
                                                 this.setPlotData(this.chartRef.getDataInfo())
-                                                this.handleChangeCheckbox('min-max');
+                                                this.handleChangeCheckboxCode('MinMax');
                                             }}
                                         />
                                     </div>
@@ -814,7 +846,7 @@ class ChartNew extends React.Component {
                                                 />
                                             }
                                             label="Тренд"
-                                            onChange={() => this.handleChangeCheckbox('trend-line')}
+                                            onChange={() => this.handleChangeCheckboxCode('TrendLine')}
                                         />
                                     </div>
                                 </div>
@@ -829,7 +861,7 @@ class ChartNew extends React.Component {
                                                 />
                                             }
                                             label="SMA"
-                                            onChange={() => this.handleChangeCheckbox('sma')}
+                                            onChange={() => this.handleChangeCheckboxCode('Sma')}
                                         />
                                     </div>
                                     <input className="iframe-input"
@@ -850,7 +882,7 @@ class ChartNew extends React.Component {
                                             }
                                             label="EMA"
                                             onChange={() => {
-                                                this.handleChangeCheckbox('ema')
+                                                this.handleChangeCheckboxCode('Ema')
                                             }}
                                         />
                                     </div>
@@ -871,7 +903,7 @@ class ChartNew extends React.Component {
                                                 />
                                             }
                                             label="Совокупный доход"
-                                            onChange={() => this.handleChangeCheckbox('total-income')}
+                                            onChange={() => this.handleChangeCheckboxCode('TotalIncome')}
                                         />
                                     </div>
                                 </div>
@@ -887,7 +919,7 @@ class ChartNew extends React.Component {
                                                 />
                                             }
                                             label="RSI"
-                                            onChange={() => this.handleChangeCheckbox('rsi')}
+                                            onChange={() => this.handleChangeCheckboxCode('Rsi')}
                                         />
                                     </div>
                                     <input className="iframe-input"
@@ -907,7 +939,7 @@ class ChartNew extends React.Component {
                                                 />
                                             }
                                             label="MACD"
-                                            onChange={() => this.handleChangeCheckbox('macd')}
+                                            onChange={() => this.handleChangeCheckboxCode('Macd')}
                                         />
                                     </div>
                                     <input className="iframe-input"

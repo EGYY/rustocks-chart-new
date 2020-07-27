@@ -1,15 +1,30 @@
 import * as _ from 'lodash';
 
+
+
 const parseData = (data) => {
     let parsedData = [];
     let groupedData = [];
 
-    for (let i = 0; i < data.length; i++) {
 
+    for (let i = 0; i < data.length; i++) {
+        const fisrtElemArr = Object.entries(data[i].values)[0][1][3];
         for (const [key, value] of Object.entries(data[i].values)) {
+
             if (data[i].code && data[i].ticker) {
                 parsedData.push({
                     date: +key,
+                    percentData: {
+                        close: {
+                            [data[i].ticker]: (Math.round((+value[3] / +fisrtElemArr) * 100))
+                        },
+                        high: {
+                            [data[i].ticker]: (Math.round((+value[2] / +fisrtElemArr) * 100))
+                        },
+                        low: {
+                            [data[i].ticker]: (Math.round((+value[1] / +fisrtElemArr) * 100))
+                        }
+                    },
                     [data[i].ticker]: {
                         open: +value[0],
                         high: +value[1],
@@ -22,6 +37,17 @@ const parseData = (data) => {
             } else {
                 parsedData.push({
                     date: +key,
+                    percentData: {
+                        close: {
+                            [data[i].code]: (Math.round((+value[3] / +fisrtElemArr) * 100))
+                        },
+                        high: {
+                            [data[i].code]: (Math.round((+value[1] / +fisrtElemArr) * 100))
+                        },
+                        low: {
+                            [data[i].code]: (Math.round((+value[2] / +fisrtElemArr) * 100))
+                        }
+                    },
                     [data[i].code]: {
                         open: +value[0],
                         high: +value[1],
@@ -37,13 +63,6 @@ const parseData = (data) => {
     }
 
     const formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
-
-
-    // parsedData.sort((a, b) => (a.date > b.date) ? 1 : -1);
-    //
-    // parsedData.reduce((prev, curr, index, arr) => {
-    //     return prev.date == curr.date ? groupedData.push({...prev, ...curr}) : curr
-    // }, []);
 
     return formatData;
 }
