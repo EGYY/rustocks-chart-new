@@ -346,7 +346,7 @@ class ChartNew extends React.Component {
                 case "close-chart":
                     return (
                         <LineSeries
-                            yAccessor={this.state.trueCountStockeCodes > 1 ? d => d.percentData[code].close : d => d[code].close}
+                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index'))? d => d.percentData[code].close : d => d[code].close}
                             stroke={initialData[0][code].color}/>
                     );
                     break;
@@ -541,10 +541,14 @@ class ChartNew extends React.Component {
         //
 
 
-        let yExtents = [smaCustom.accessor(), emaCustom.accessor()];
+        let yExtents = [
+            ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.percentData[this.state.indexChart].close : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
+            smaCustom.accessor(),
+            emaCustom.accessor()
+        ];
 
 
-        stockArr.map(item => yExtents.push(((this.state.trueCountStockeCodes > 1) && this.state.stockCodes[item.stock[1]]) ? d => d.percentData[item.stock[1]].close : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
+        stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.percentData[item.stock[1]].close : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
 
         console.log(yExtents)
 
@@ -640,7 +644,7 @@ class ChartNew extends React.Component {
                                             {
                                                 this.state.indexChart != 'off-index' ? (
                                                     <LineSeries
-                                                        yAccessor={this.state.trueCountStockeCodes > 1 ? d => d.percentData[this.state.indexChart].close : d => d[this.state.indexChart].close}
+                                                        yAccessor={this.state.trueCountStockeCodes >= 1 ? d => d.percentData[this.state.indexChart].close : d => d[this.state.indexChart].close}
                                                         stroke="#FF0000"/>
                                                 ) : null
                                             }
