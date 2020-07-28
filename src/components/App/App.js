@@ -1,4 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
+
+import RefreshIcon from '@material-ui/icons/Refresh';
+import IconButton from "@material-ui/core/IconButton";
+
 import Chart from "../Chart/Chart";
 import Spinner from "../Spinner/Spinner";
 
@@ -30,6 +34,9 @@ function App() {
         return (
             <div className='err-msg'>
                 <h1>Упс...Обнови страничку</h1>
+                <IconButton aria-label="refresh"  onClick={() => document.location.reload(true)}>
+                    <RefreshIcon fontSize="large" />
+                </IconButton>
             </div>
         )
     }
