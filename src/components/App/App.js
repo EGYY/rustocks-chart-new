@@ -7,6 +7,7 @@ import {getDataRustocks} from "../../utils/getRustocksData";
 
 function App() {
     const [data, setData] = useState([]);
+    const [err, setErr] = useState(false);
     const [timeGap, setTimeGap] = useState('1d');
     const [arrPapers, serArrPapers] = useState([]);
     const [isLoading, setLoading] = useState(true);
@@ -17,8 +18,19 @@ function App() {
             setLoading(false);
             setData(data.data);
             serArrPapers(data.arrPapers);
+        }).catch((e) => {
+            console.log(e);
+            setErr(true)
         });
     }, [timeGap]);
+
+    if(err) {
+        return (
+            <div className='err-msg'>
+                <h1>Упс...Обнови страничку</h1>
+            </div>
+        )
+    }
 
     const changeDataByTimeGap = (gap) => {
         setTimeGap(gap);

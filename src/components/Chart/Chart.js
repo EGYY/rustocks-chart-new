@@ -46,52 +46,6 @@ import Spinner from "../Spinner/Spinner";
 import DownloadExelBtn from "../DownloadExelBtn/DownloadExelBtn";
 
 
-const numberFormat = format(".2f");
-const dateFormat = timeFormat("%I:%M");
-const macdAppearance = {
-    stroke: {
-        macd: "#FF0000",
-        signal: "#00F300",
-    },
-    fill: {
-        divergence: "#4682B4"
-    },
-};
-
-const tooltipContent = (ys) => {
-    return ({currentItem, xAccessor}) => {
-        return {
-            x: dateFormat(xAccessor(currentItem)),
-            y: [
-                {
-                    label: "open",
-                    value: currentItem.open && numberFormat(currentItem.open)
-                },
-                {
-                    label: "high",
-                    value: currentItem.high && numberFormat(currentItem.high)
-                },
-                {
-                    label: "low",
-                    value: currentItem.low && numberFormat(currentItem.low)
-                },
-                {
-                    label: "close",
-                    value: currentItem.close && numberFormat(currentItem.close)
-                }
-            ]
-                .concat(
-                    ys.map(each => ({
-                        label: each.label,
-                        value: each.value(currentItem),
-                        stroke: each.stroke
-                    }))
-                )
-                .filter(line => line.value)
-        };
-    };
-}
-
 class ChartNew extends React.Component {
     constructor(props) {
         super(props);
@@ -336,6 +290,53 @@ class ChartNew extends React.Component {
         } = this.state;
 
         console.log(arrPapers);
+        const numberFormat = format(".2f");
+
+        const dateFormat = timeFormat("%I:%M");
+
+        const macdAppearance = {
+            stroke: {
+                macd: "#FF0000",
+                signal: "#00F300",
+            },
+            fill: {
+                divergence: "#4682B4"
+            },
+        };
+
+        const tooltipContent = (ys) => {
+            return ({currentItem, xAccessor}) => {
+                return {
+                    x: dateFormat(xAccessor(currentItem)),
+                    y: [
+                        {
+                            label: "open",
+                            value: currentItem.open && numberFormat(currentItem.open)
+                        },
+                        {
+                            label: "high",
+                            value: currentItem.high && numberFormat(currentItem.high)
+                        },
+                        {
+                            label: "low",
+                            value: currentItem.low && numberFormat(currentItem.low)
+                        },
+                        {
+                            label: "close",
+                            value: currentItem.close && numberFormat(currentItem.close)
+                        }
+                    ]
+                        .concat(
+                            ys.map(each => ({
+                                label: each.label,
+                                value: each.value(currentItem),
+                                stroke: each.stroke
+                            }))
+                        )
+                        .filter(line => line.value)
+                };
+            };
+        }
 
         const stockArr = arrPapers.filter(item => item.stock);
         const indexesArr = arrPapers.filter(item => item.index);
@@ -587,7 +588,10 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__title">
                                     Цены
                                 </div>
-                                <FormControl style={{width: '150px'}}>
+                                <FormControl
+                                    disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
+                                    style={{width: '150px'}}
+                                >
                                     <Select
                                         labelId="demo-simple-select-label"
                                         id="demo-simple-select"
@@ -627,6 +631,7 @@ class ChartNew extends React.Component {
                                         <Chart id={1}
                                                height={200}
                                                width={500}
+                                               padding={{top: 10, bottom: 20}}
                                                yExtents={yExtents}>
 
                                             <XAxis axisAt="bottom" orient="bottom"/>
@@ -851,7 +856,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(this.state.trueCountStockeCodes > 1) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isMinMax}
@@ -870,7 +875,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(this.state.trueCountStockeCodes > 1) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTrendLine}
@@ -886,7 +891,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(this.state.trueCountStockeCodes > 1) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isSma}
@@ -908,7 +913,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(this.state.trueCountStockeCodes > 1) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isEma}
@@ -932,6 +937,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
+                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTotalIncome}
@@ -1022,11 +1028,6 @@ class ChartNew extends React.Component {
 }
 
 
-export default withDeviceRatio()
-
-(
-    ChartNew
-)
-;
+export default withDeviceRatio()(ChartNew);
 
 // export default withSize({ style: { minHeight: 600 } })(withDeviceRatio()(ChartNew));
