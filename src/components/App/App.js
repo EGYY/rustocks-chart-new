@@ -5,6 +5,8 @@ import Spinner from "../Spinner/Spinner";
 import {getData} from "../../utils/getData";
 import {getDataRustocks} from "../../utils/getRustocksData";
 
+import './app.scss';
+
 function App() {
     const [data, setData] = useState([]);
     const [err, setErr] = useState(false);

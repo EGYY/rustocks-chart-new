@@ -692,24 +692,27 @@ class ChartNew extends React.Component {
 
                                             <MouseCoordinateY displayFormat={format(".2f")}/>
 
-                                            <HoverTooltip
-                                                yAccessor={emaCustom.accessor()}
-                                                tooltipContent={tooltipContent([
-                                                    {
-                                                        label: `${emaCustom.type()}(${emaCustom.options()
-                                                            .windowSize})`,
-                                                        value: d => numberFormat(emaCustom.accessor()(d)),
-                                                        stroke: emaCustom.stroke()
-                                                    },
-                                                    {
-                                                        label: `${smaCustom.type()}(${smaCustom.options()
-                                                            .windowSize})`,
-                                                        value: d => numberFormat(smaCustom.accessor()(d)),
-                                                        stroke: smaCustom.stroke()
-                                                    }
-                                                ])}
-                                                fontSize={15}
-                                            />
+                                            {this.state.stockCodes[stockArr[0].stock[1]] ? (
+                                                <HoverTooltip
+                                                    yAccessor={emaCustom.accessor()}
+                                                    tooltipContent={tooltipContent([
+                                                        {
+                                                            label: `${emaCustom.type()}(${emaCustom.options()
+                                                                .windowSize})`,
+                                                            value: d => numberFormat(emaCustom.accessor()(d)),
+                                                            stroke: emaCustom.stroke()
+                                                        },
+                                                        {
+                                                            label: `${smaCustom.type()}(${smaCustom.options()
+                                                                .windowSize})`,
+                                                            value: d => numberFormat(smaCustom.accessor()(d)),
+                                                            stroke: smaCustom.stroke()
+                                                        }
+                                                    ])}
+                                                    fontSize={15}
+                                                />
+                                            ): null}
+
 
                                             {/*Current close visualisation*/}
 
