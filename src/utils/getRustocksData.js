@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 const parseData = (data) => {
     let parsedData = [];
     let groupedData = [];
+    const stockColors = ['#3f84f2', '#7b3ff2', '#3ff287', '#3fe9f2', '#f2f23f', '#f2603f',  '#f23fa4', '#3ff2b0'];
 
 
     for (let i = 0; i < data.length; i++) {
@@ -19,6 +20,7 @@ const parseData = (data) => {
                     date: +key,
                     percentData: {
                         [data[i].ticker]: {
+                            color: stockColors[i],
                             open: (Math.round((+value[0] / +firstElArrOpen) * 100)),
                             high: (Math.round((+value[1] / +firstElArrHigh) * 100)),
                             low: (Math.round((+value[3] / +firstElArrLow) * 100)),
@@ -26,6 +28,7 @@ const parseData = (data) => {
                         }
                     },
                     [data[i].ticker]: {
+                        color: stockColors[i],
                         open: +value[0],
                         high: +value[1],
                         low: +value[2],
