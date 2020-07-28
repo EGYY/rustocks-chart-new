@@ -1,4 +1,4 @@
-import React from "react";
+import React, {Fragment} from "react";
 
 import {timeFormat} from "d3-time-format";
 import {format} from "d3-format";
@@ -116,51 +116,61 @@ class ChartNew extends React.Component {
             slowMacdPeriod: 26,
             fastMacdPeriod: 12,
             signalMacdPeriod: 9,
+            checkedStockCount: 0,
             plotData: [],
             yMax: null,
             yMin: null,
+            indexChart: 'off-index',
             typeChart: 'close-chart',
             timeGap: '1d'
         }
     }
 
     componentDidMount() {
-        // this.chartRef.subscribe('scrollChart', {listener: this.handleEvents})
+        // this.chartRef.subscribe('chartListener', {listener: this.handleEvents})
     }
 
     componentWillUnmount() {
-        // this.chartRef.unsubscribe('scrollChart');
+        // this.chartRef.unsubscribe('chartListener');
     }
 
     handleEvents(type, props, state) {
-
+        console.log(type)
         switch (type) {
-            case 'pan':
+            case 'panend':
                 const {plotData} = state;
-                // console.log(plotData)
-                const closeData = plotData.map(item => item.close);
-                const yMax = Math.max(...closeData);
-                const yMin = Math.min(...closeData);
-                console.log(yMax, yMin)
+                const minMaxArr = this.findMinMaxValues(plotData);
+
                 this.setState({
-                    yMax,
-                    yMin,
+                    yMax: minMaxArr[1],
+                    yMin: minMaxArr[0],
                     plotData
                 })
                 break;
         }
     }
 
+    findMinMaxValues(data) {
+        let min = data[0].close;
+        let max = data[0].close;
+
+        for (let i = 1; i < data.length; i++) {
+            let currValue = data[i].close;
+            min = (currValue < min) ? currValue : min;
+            max = (currValue > max) ? currValue : max;
+        }
+
+        return [min, max];
+    }
+
 
     setPlotData({plotData}) {
-        let closeData;
-        (this.state.isWGC4 && this.state.isSNGS) ? closeData = plotData.map(item => item.percentData.WGC4.close) : closeData = plotData.map(item => item.close);
-        const yMax = Math.max(...closeData);
-        const yMin = Math.min(...closeData);
+        const minMaxArr = this.findMinMaxValues(plotData);
+        // console.log(this.findMinMaxValues())
         this.setState({
             plotData,
-            yMax,
-            yMin
+            yMax: minMaxArr[1],
+            yMin: minMaxArr[0]
         })
     }
 
@@ -171,75 +181,15 @@ class ChartNew extends React.Component {
     }
 
 
+
     handleChangeCheckboxCode(code) {
         let key = `is${code}`;
         let upd = {};
         upd[key] = !(this.state[key] || false);
-        console.log("CODE/UPD:", code, upd);
         let newState = Object.assign({}, this.state, upd);
-        console.log(newState);
         this.setState(newState);
     }
 
-
-    handleChangeCheckbox(type) {
-        switch (type) {
-            // case 'WGC4':
-            //     this.setState({
-            //         isWGC4: !this.state.isWGC4
-            //     });
-            //     break;
-            //
-            // case 'SNGS':
-            //     this.setState({
-            //         isSNGS: !this.state.isSNGS
-            //     });
-            //     break;
-
-            case 'min-max':
-                this.setState({
-                    isMinMax: !this.state.isMinMax
-                });
-                break;
-
-            case 'trend-line':
-                this.setState({
-                    isTrendLine: !this.state.isTrendLine
-                });
-                break;
-
-            case 'ema':
-                this.setState({
-                    isEma: !this.state.isEma
-                });
-                break;
-
-            case 'total-income':
-                this.setState({
-                    isTotalIncome: !this.state.isTotalIncome
-                });
-                break;
-
-            case 'sma':
-                this.setState({
-                    isSma: !this.state.isSma
-                });
-                break;
-
-            case 'rsi':
-                this.setState({
-                    isRsi: !this.state.isRsi
-                });
-                break;
-
-            case 'macd':
-                this.setState({
-                    isMacd: !this.state.isMacd
-                });
-                break;
-        }
-
-    }
 
     handleChangeSelect(e) {
         const type = e.target.value;
@@ -340,6 +290,13 @@ class ChartNew extends React.Component {
 
     }
 
+    handleChangeIndexChart(e) {
+        const indexChart = e.target.value;
+        this.setState({
+            indexChart
+        })
+    }
+
 
     render() {
         let start, end;
@@ -368,36 +325,18 @@ class ChartNew extends React.Component {
             plotData
         } = this.state;
 
-        const renderIndexes = arrPapers.filter(item => item.index).map((item, i) => {
-            return (
-                <MenuItem key={i} value={`${item.index}`}>{item.index}</MenuItem>
-            )
-        });
+        console.log(arrPapers);
 
-        const renderCheckboxTickers = arrPapers.filter(item => item.stock).map((item, index) => {
-            const checked = `is${item.stock[1]}`
-            return (
-                <FormControlLabel
-                    key={index}
-                    control={
-                        <Checkbox
-                            checked={this.state[checked] || false}
-                            onChange={() => this.handleChangeCheckboxCode(item.stock[1])}
-                            name={`${item.stock[1]}`}
-                            color="primary"
-                        />
-                    }
-                    label={`${item.stock[0]}: ${item.stock[1]}`}
-                />
-            )
-        });
+        const stockArr = arrPapers.filter(item => item.stock);
+        const indexesArr = arrPapers.filter(item => item.index);
 
-        const renderChartFromType = () => {
+        console.log(this.state);
+        const renderChartFromType = (code) => {
             switch (typeChart) {
                 case "close-chart":
                     return (
                         <LineSeries
-                            yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.WGC4.close : d => d.WGC4.close}
+                            yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData[code].close : d => d[code].close}
                             stroke="#4286f4"/>
                     );
                     break;
@@ -407,12 +346,12 @@ class ChartNew extends React.Component {
                         <CandlestickSeries yAccessor={
                             d => (this.state.isWGC4 && this.state.isSNGS) ?
                                 ({
-                                    open: d.percentData.WGC4.open,
-                                    high: d.percentData.WGC4.high,
-                                    low: d.percentData.WGC4.low,
-                                    close: d.percentData.WGC4.close
+                                    open: d.percentData[code].open,
+                                    high: d.percentData[code].high,
+                                    low: d.percentData[code].low,
+                                    close: d.percentData[code].close
                                 }) :
-                                ({open: d.WGC4.open, high: d.WGC4.high, low: d.WGC4.low, close: d.WGC4.close})
+                                ({open: d[code].open, high: d[code].high, low: d[code].low, close: d[code].close})
 
                         }/>
                     );
@@ -423,12 +362,12 @@ class ChartNew extends React.Component {
                         <OHLCSeries yAccessor={
                             d => (this.state.isWGC4 && this.state.isSNGS) ?
                                 ({
-                                    open: d.percentData.WGC4.open,
-                                    high: d.percentData.WGC4.high,
-                                    low: d.percentData.WGC4.low,
-                                    close: d.percentData.WGC4.close
+                                    open: d.percentData[code].open,
+                                    high: d.percentData[code].high,
+                                    low: d.percentData[code].low,
+                                    close: d.percentData[code].close
                                 }) :
-                                ({open: d.WGC4.open, high: d.WGC4.high, low: d.WGC4.low, close: d.WGC4.close})
+                                ({open: d[code].open, high: d[code].high, low: d[code].low, close: d[code].close})
 
                         }
                                     stroke="#529aff"/>
@@ -438,13 +377,57 @@ class ChartNew extends React.Component {
                 case 'area-chart':
                     return (
                         <AreaSeries
-                            yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.WGC4.close : d => d.WGC4.close}
+                            yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData[code].close : d => d[code].close}
                         />
                     );
                     break;
             }
 
         }
+
+
+
+
+
+        const renderAllStockChartsByCheck = stockArr.map((item, i) => {
+                let checkCode = `is${item.stock[1]}`
+                return (
+                    <React.Fragment key={i}>
+                        {
+                            this.state[checkCode] ? renderChartFromType(item.stock[1]) : null
+                        }
+                    </React.Fragment>
+                )
+            })
+
+        const renderIndexes = indexesArr.map((item, i) => {
+                return (
+                    <MenuItem key={i} value={`${item.index}`}>{item.index}</MenuItem>
+                )
+            });
+
+        const renderCheckboxTickers = stockArr.map((item, index) => {
+            const checked = `is${item.stock[1]}`
+            return (
+                <FormControlLabel
+
+                    key={index}
+                    control={
+                        <Checkbox
+                            className='stock-checkbox'
+                            checked={this.state[checked] || false}
+                            onChange={() => {
+                                this.handleChangeCheckboxCode(item.stock[1])
+                            }}
+                            name={`${item.stock[1]}`}
+                            color="primary"
+                        />
+                    }
+                    label={`${item.stock[0]}: ${item.stock[1]}`}
+                />
+            )
+        });
+
 
         const emaCustom = ema()
             .options({windowSize: +emaPeriod})
@@ -483,7 +466,7 @@ class ChartNew extends React.Component {
             })
             .accessor(d => d.WGC4.macd);
 
-        
+
         const calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
 
         const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(d => d.date);
@@ -563,8 +546,8 @@ class ChartNew extends React.Component {
                                         <Select
                                             labelId="demo-simple-select-label"
                                             id="demo-simple-select"
-                                            value="off-index"
-                                            // onChange={(e) => this.typeCharthandleChange(e)}
+                                            value={this.state.indexChart}
+                                            onChange={(e) => this.handleChangeIndexChart(e)}
                                         >
                                             {renderIndexes}
                                             <MenuItem value='off-index'>Выключить</MenuItem>
@@ -598,7 +581,7 @@ class ChartNew extends React.Component {
                                     }}
                                                  margin={{left: 60, right: 60, top: 20, bottom: 24}}
                                                  onSelect={() => {
-                                                     console.log(this.chartRef.getDataInfo())
+                                                     // console.log(this.chartRef.getDataInfo())
                                                      this.setPlotData(this.chartRef.getDataInfo())
                                                  }}
                                                  displayXAccessor={displayXAccessor}
@@ -619,9 +602,9 @@ class ChartNew extends React.Component {
                                                width={500}
                                                yExtents={[
                                                    (this.state.isWGC4 && this.state.isSNGS) ? d => [d.percentData.WGC4.high, d.percentData.WGC4.low] : d => [d.high, d.low],
-                                                   // d => d.WGC4.close,
-                                                   (this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.WGC4.close : d => d.WGC4.close,
-                                                   (this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.SNGS.close : this.state.isSNGS ? d => d.SNGS.close : null,
+                                                   ((this.state.indexChart != 'off-index' && this.state.isSNGS) || (this.state.isWGC4 && this.state.indexChart != 'off-index')) ? d => d.percentData.MICEXC.close : this.state.indexChart != 'off-index' ? d => d.MICEXC.close :  null,
+                                                   ((this.state.isWGC4 && this.state.isSNGS) || this.state.indexChart != 'off-index')  ? d => d.percentData.WGC4.close : d => d.WGC4.close,
+                                                   ((this.state.isWGC4 && this.state.isSNGS) || this.state.indexChart != 'off-index') ? d => d.percentData.SNGS.close : this.state.isSNGS ? d => d.SNGS.close : null,
                                                    emaCustom.accessor(),
                                                    smaCustom.accessor()
                                                ]}>
@@ -634,10 +617,17 @@ class ChartNew extends React.Component {
                                             />
 
                                             {
-                                                this.state.isWGC4 ? renderChartFromType() : null
+                                                // this.state.isWGC4 ? renderChartFromType() : null
+                                                renderAllStockChartsByCheck
                                             }
 
-                                            {}
+                                            {
+                                                this.state.indexChart != 'off-index' ? (
+                                                    <LineSeries
+                                                        yAccessor={((this.state.isWGC4 && this.state.isSNGS) || this.state.isWGC4 || this.state.isSNGS) ? d => d.percentData[this.state.indexChart].close : d => d[this.state.indexChart].close}
+                                                        stroke="#FF0000"/>
+                                                ) : null
+                                            }
 
                                             {isTrendLine ? (
                                                 <TrendLine
@@ -651,10 +641,10 @@ class ChartNew extends React.Component {
 
                                             {isTotalIncome ? <AreaSeries
                                                 yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.WGC4.close : d => d.WGC4.close}/> : null}
-                                            {isSNGS ?
-                                                <LineSeries
-                                                    yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.SNGS.close : d => d.SNGS.close}
-                                                    stroke="#4236f4"/> : null}
+                                            {/*{isSNGS ?*/}
+                                            {/*    <LineSeries*/}
+                                            {/*        yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.SNGS.close : d => d.SNGS.close}*/}
+                                            {/*        stroke="#4236f4"/> : null}*/}
                                             {isEma ?
                                                 <LineSeries yAccessor={emaCustom.accessor()} stroke="#00F300"/> : null}
                                             {isSma ?
@@ -839,6 +829,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
+                                            disabled={(this.state.isWGC4 && this.state.isSNGS) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isMinMax}
@@ -872,6 +863,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
+                                            disabled={(this.state.isWGC4 && this.state.isSNGS) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isSma}
@@ -892,6 +884,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
+                                            disabled={(this.state.isWGC4 && this.state.isSNGS) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isEma}
