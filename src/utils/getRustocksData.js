@@ -21,10 +21,10 @@ const parseData = (data) => {
                     percentData: {
                         [data[i].ticker]: {
                             color: stockColors[i],
-                            open: (Math.round((+value[0] / +firstElArrOpen) * 100)),
-                            high: (Math.round((+value[1] / +firstElArrHigh) * 100)),
-                            low: (Math.round((+value[3] / +firstElArrLow) * 100)),
-                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100)),
+                            open: (Math.round((+value[0] / +firstElArrOpen) * 100) - 100),
+                            high: (Math.round((+value[1] / +firstElArrHigh) * 100) - 100),
+                            low: (Math.round((+value[2] / +firstElArrLow) * 100) - 100),
+                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
                         }
                     },
                     [data[i].ticker]: {
@@ -42,10 +42,10 @@ const parseData = (data) => {
                     date: +key,
                     percentData: {
                         [data[i].code]: {
-                            open: (Math.round((+value[0] / +firstElArrOpen) * 100)),
-                            high: (Math.round((+value[1] / +firstElArrHigh) * 100)),
-                            low: (Math.round((+value[3] / +firstElArrLow) * 100)),
-                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100)),
+                            open: (Math.round((+value[0] / +firstElArrOpen) * 100) - 100),
+                            high: (Math.round((+value[1] / +firstElArrHigh) * 100) - 100),
+                            low: (Math.round((+value[2] / +firstElArrLow) * 100) - 100),
+                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
                         }
                     },
                     [data[i].code]: {

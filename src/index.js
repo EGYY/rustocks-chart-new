@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom';
 
 import App from './components/App/App';
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+window.renderCharts = function(mountId, config) {
+    ReactDOM.render(
+        <React.StrictMode>
+            <App config={config} />
+        </React.StrictMode>,
+        document.getElementById(mountId)
+    );
+}

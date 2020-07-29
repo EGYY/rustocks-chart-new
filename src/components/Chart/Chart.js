@@ -273,7 +273,6 @@ class ChartNew extends React.Component {
             slowMacdPeriod,
             fastMacdPeriod,
             signalMacdPeriod,
-            isSNGS,
             isMinMax,
             isEma,
             isSma,
@@ -859,7 +858,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) ||  false}
                                             control={
                                                 <Checkbox
                                                     checked={isMinMax}
@@ -1014,7 +1013,7 @@ class ChartNew extends React.Component {
                             </div>
                             <div className="iframe-filter__block">
                                 <DownloadExelBtn data={data}/>
-                                <Button variant="contained" color="primary">
+                                <Button variant="contained" color="primary" className='fullscreen-chart' onClick={() => window.open(`http://localhost:3000/`)}>
                                     Развернуть график
                                 </Button>
                                 <Button variant="contained" color="primary" onClick={() => window.print()}>

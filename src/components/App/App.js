@@ -11,7 +11,8 @@ import {getDataRustocks} from "../../utils/getRustocksData";
 
 import './app.scss';
 
-function App() {
+function App({config}) {
+    const {primaryColor, secondaryColor} = config;
     const [data, setData] = useState([]);
     const [err, setErr] = useState(false);
     const [timeGap, setTimeGap] = useState('1d');
