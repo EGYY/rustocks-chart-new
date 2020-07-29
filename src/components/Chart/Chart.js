@@ -58,8 +58,8 @@ class ChartNew extends React.Component {
             isMinMax: false,
             isEma: false,
             isSma: false,
-            isRsi: true,
-            isMacd: true,
+            isRsi: false,
+            isMacd: false,
             isTotalIncome: false,
             isDatePicker: false,
             isTrendLine: false,
@@ -79,28 +79,29 @@ class ChartNew extends React.Component {
         }
     }
 
-    componentDidMount() {
-        // this.chartRef.subscribe('chartListener', {listener: this.handleEvents})
-    }
 
-    componentWillUnmount() {
-        // this.chartRef.unsubscribe('chartListener');
-    }
+    // componentDidMount() {
+    //     this.chartRef.subscribe('chartListener', {listener: this.handleEvents})
+    // }
+
+    // componentWillUnmount() {
+    //     // this.chartRef.unsubscribe('chartListener');
+    // }
 
     handleEvents(type, props, state) {
         console.log(type)
-        switch (type) {
-            case 'panend':
-                const {plotData} = state;
-                const minMaxArr = this.findMinMaxValues(plotData);
-
-                this.setState({
-                    yMax: minMaxArr[1],
-                    yMin: minMaxArr[0],
-                    plotData
-                })
-                break;
-        }
+        // switch (type) {
+        //     case 'panend':
+        //         const {plotData} = state;
+        //         const minMaxArr = this.findMinMaxValues(plotData);
+        //
+        //         this.setState({
+        //             yMax: minMaxArr[1],
+        //             yMin: minMaxArr[0],
+        //             plotData
+        //         })
+        //         break;
+        // }
     }
 
     findMinMaxValues(data) {
@@ -117,8 +118,10 @@ class ChartNew extends React.Component {
     }
 
 
-    setPlotData({plotData}) {
+    handleChangeData({plotData}) {
         const minMaxArr = this.findMinMaxValues(plotData);
+        console.log(minMaxArr)
+        console.log(plotData)
         // console.log(this.findMinMaxValues())
         this.setState({
             plotData,
@@ -143,8 +146,6 @@ class ChartNew extends React.Component {
 
 
     handleChangeCheckboxCode(code) {
-
-
         let oldStockCodes = this.state.stockCodes;
         let newStockCodes = oldStockCodes;
         newStockCodes[code] = !(oldStockCodes[code] || false)
@@ -152,16 +153,21 @@ class ChartNew extends React.Component {
             stockCodes: newStockCodes
         })
         const trueCountStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true).length
-        console.log(trueCountStockeCodes)
+        // console.log(trueCountStockeCodes)
         this.setState({
             trueCountStockeCodes
         });
+
+        if (trueCountStockeCodes > 1) {
+            this.setState({
+                typeChart: 'close-chart'
+            });
+        }
     }
 
 
     handleChangeSelect(e) {
         const type = e.target.value;
-
 
         switch (type) {
             case 'close-chart':
@@ -346,7 +352,7 @@ class ChartNew extends React.Component {
                 case "close-chart":
                     return (
                         <LineSeries
-                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index'))? d => d.percentData[code].close : d => d[code].close}
+                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.percentData[code].close : d => d[code].close}
                             stroke={initialData[0][code].color}/>
                     );
                     break;
@@ -354,7 +360,7 @@ class ChartNew extends React.Component {
                 case "candle-chart":
                     return (
                         <CandlestickSeries yAccessor={
-                            d => (this.state.isWGC4 && this.state.isSNGS) ?
+                            d => ((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ?
                                 ({
                                     open: d.percentData[code].open,
                                     high: d.percentData[code].high,
@@ -370,7 +376,7 @@ class ChartNew extends React.Component {
                 case "ohl-chart":
                     return (
                         <OHLCSeries yAccessor={
-                            d => (this.state.isWGC4 && this.state.isSNGS) ?
+                            d => ((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ?
                                 ({
                                     open: d.percentData[code].open,
                                     high: d.percentData[code].high,
@@ -387,7 +393,7 @@ class ChartNew extends React.Component {
                 case 'area-chart':
                     return (
                         <AreaSeries
-                            yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData[code].close : d => d[code].close}
+                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.percentData[code].close : d => d[code].close}
                         />
                     );
                     break;
@@ -500,18 +506,10 @@ class ChartNew extends React.Component {
         const xMin = Math.min(...timeStamps);
 
         const dataForTrendLine = dataTrend.map(item => {
-            return (this.state.isWGC4 && this.state.isSNGS) ?
-                {
-                    close: item.percentData.WGC4.close,
-                    date: +item.date
-                } : {
-                    close: item.close,
-                    date: +item.date
-                }
-            // return {
-            //     close: item.close,
-            //     date: +item.date
-            // }
+            return {
+                close: item.close,
+                date: +item.date
+            }
         })
 
 
@@ -529,18 +527,6 @@ class ChartNew extends React.Component {
             ];
         }
 
-
-        // [
-        //     (this.state.isWGC4 && this.state.isSNGS) ? d => [d.percentData.WGC4.high, d.percentData.WGC4.low] : d => [d.high, d.low],
-        //     ((this.state.indexChart != 'off-index' && this.state.isSNGS) || (this.state.isWGC4 && this.state.indexChart != 'off-index')) ? d => d.percentData.MICEXC.close : this.state.indexChart != 'off-index' ? d => d.MICEXC.close :  null,
-        //     ((this.state.isWGC4 && this.state.isSNGS) || this.state.indexChart != 'off-index')  ? d => d.percentData.WGC4.close : d => d.WGC4.close,
-        //     ((this.state.isWGC4 && this.state.isSNGS) || this.state.indexChart != 'off-index') ? d => d.percentData.SNGS.close : this.state.isSNGS ? d => d.SNGS.close : null,
-        //     emaCustom.accessor(),
-        //     smaCustom.accessor()
-        // ]
-        //
-
-
         let yExtents = [
             ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.percentData[this.state.indexChart].close : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
             smaCustom.accessor(),
@@ -548,9 +534,23 @@ class ChartNew extends React.Component {
         ];
 
 
-        stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.percentData[item.stock[1]].close : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
+        stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) ||
+            (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.percentData[item.stock[1]].close : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
 
-        console.log(yExtents)
+        // console.log(yExtents)
+
+
+        let heightMainChartLines = 200;
+        let heightVolumeChart = (this.state.stockCodes[stockArr[0].stock[1]]) ? 200 : 0;
+        let heightRsiChart = isRsi ? 200 : 0;
+        let heightMacdChart = isMacd ? 200 : 0;
+        // let chartOrigin = (w, h) => [0, h - heightVolumeChart - heightMainChartLines - heightRsiChart - heightMacdChart];
+        let rsiOrigin = (w, h) => [0, h - heightRsiChart - heightMacdChart]
+        let macdOrigin = (w, h) => [0, h - heightMacdChart]
+        let volumeOrigin = (w, h) => [0, h - heightVolumeChart - heightRsiChart - heightMacdChart];
+
+        let heightChartCanvas = heightMainChartLines + heightVolumeChart + heightRsiChart + heightMacdChart + 50;
+        // console.log(heightChartCanvas, chartOrigin)
 
 
         return (
@@ -588,7 +588,7 @@ class ChartNew extends React.Component {
                                     Цены
                                 </div>
                                 <FormControl
-                                    disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
+                                    disabled={(this.state.trueCountStockeCodes > 1) || false}
                                     style={{width: '150px'}}
                                 >
                                     <Select
@@ -611,8 +611,8 @@ class ChartNew extends React.Component {
                                     }}
                                                  margin={{left: 60, right: 60, top: 20, bottom: 24}}
                                                  onSelect={() => {
-                                                     // console.log(this.chartRef.getDataInfo())
-                                                     this.setPlotData(this.chartRef.getDataInfo())
+                                                     console.log(this.chartRef.getAllPanConditions())
+                                                     this.handleChangeData(this.chartRef.getDataInfo())
                                                  }}
                                                  displayXAccessor={displayXAccessor}
                                                  xAccessor={xAccessor}
@@ -622,15 +622,15 @@ class ChartNew extends React.Component {
                                                  data={data}
                                                  ratio={ratio}
                                                  panEvent={true}
-                                                 height={1000}
+                                                 height={heightChartCanvas}
                                                  width={550}
                                                  xExtents={[100, 200]}>
 
 
                                         <Chart id={1}
-                                               height={200}
+                                               height={heightMainChartLines}
                                                width={500}
-                                               padding={{top: 10, bottom: 20}}
+                                               padding={{top: 10, bottom: 10}}
                                                yExtents={yExtents}>
 
                                             <XAxis axisAt="bottom" orient="bottom"/>
@@ -641,7 +641,6 @@ class ChartNew extends React.Component {
                                             />
 
                                             {
-                                                // this.state.isWGC4 ? renderChartFromType() : null
                                                 renderAllStockChartsByCheckBox
                                             }
 
@@ -664,17 +663,15 @@ class ChartNew extends React.Component {
                                             }
 
                                             {isTotalIncome ? <AreaSeries
-                                                yAccessor={this.state.trueCountStockeCodes > 1 ? d => d.percentData[stockArr[0].stock[1]].close : d => d[stockArr[0].stock[1]].close}/> : null}
-                                            {/*{isSNGS ?*/}
-                                            {/*    <LineSeries*/}
-                                            {/*        yAccessor={(this.state.isWGC4 && this.state.isSNGS) ? d => d.percentData.SNGS.close : d => d.SNGS.close}*/}
-                                            {/*        stroke="#4236f4"/> : null}*/}
+                                                yAccessor={
+                                                    this.state.trueCountStockeCodes > 1 ?
+                                                        d => d.percentData[stockArr[0].stock[1]].close :
+                                                        d => d[stockArr[0].stock[1]].close}/> : null}
+
                                             {isEma ?
-                                                <LineSeries yAccessor={emaCustom.accessor()}
-                                                            stroke="#00F300"/> : null}
+                                                <LineSeries yAccessor={emaCustom.accessor()} stroke="#00F300"/> : null}
                                             {isSma ?
-                                                <LineSeries yAccessor={smaCustom.accessor()}
-                                                            stroke="#FF0000"/> : null}
+                                                <LineSeries yAccessor={smaCustom.accessor()} stroke="#FF0000"/> : null}
                                             {isMinMax ? (
                                                 <React.Fragment>
                                                     <EdgeIndicator itemType="first" orient="right" edgeAt="right"
@@ -693,6 +690,7 @@ class ChartNew extends React.Component {
 
                                             {this.state.stockCodes[stockArr[0].stock[1]] ? (
                                                 <HoverTooltip
+                                                    backgroundShapeSVG='#fff'
                                                     yAccessor={emaCustom.accessor()}
                                                     tooltipContent={tooltipContent([
                                                         {
@@ -710,42 +708,33 @@ class ChartNew extends React.Component {
                                                     ])}
                                                     fontSize={15}
                                                 />
-                                            ): null}
-
-
-                                            {/*Current close visualisation*/}
-
-                                            {/*<EdgeIndicator*/}
-                                            {/*    itemType="last"*/}
-                                            {/*    rectWidth={48}*/}
-                                            {/*    fill={d => d.close > d.open ? "#26a69a" : "#ef5350"}*/}
-                                            {/*    lineStroke={d => d.close > d.open ? "#26a69a" : "#ef5350"}*/}
-                                            {/*    displayFormat={format(".2f")}*/}
-                                            {/*    yAccessor={d => d.close}*/}
-                                            {/*/>*/}
+                                            ) : null}
                                         </Chart>
 
+                                        {
+                                            this.state.stockCodes[stockArr[0].stock[1]] ? (
+                                                <Chart id={2}
+                                                       yExtents={d => d[stockArr[0].stock[1]].volume}
+                                                       height={heightVolumeChart}
+                                                       origin={volumeOrigin}
+                                                       padding={{top: 20, bottom: 10}}
+                                                >
+                                                    <XAxis axisAt="bottom" orient="bottom"/>
+                                                    <YAxis axisAt="right" orient="right" ticks={2}/>
 
-                                        <Chart id={2}
-                                               yExtents={d => d.WGC4.volume}
-                                               height={200}
-                                               origin={(w, h) => [0, h - 700]}
-                                        >
-                                            <XAxis axisAt="bottom" orient="bottom"/>
-                                            <YAxis axisAt="right" orient="right" ticks={2}/>
+                                                    <BarSeries yAccessor={d => d[stockArr[0].stock[1]].volume}/>
+                                                </Chart>
 
-                                            <BarSeries yAccessor={d => d.WGC4.volume}/>
+                                            ) : null
+                                        }
 
-                                            {/*<MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>*/}
-                                            {/*<MouseCoordinateY displayFormat={format(".2f")}/>*/}
-                                        </Chart>
-
-                                        {isRsi ?
-                                            (
+                                        {
+                                            ((this.state.stockCodes[stockArr[0].stock[1]]) && isRsi) ? (
                                                 <Chart id={3}
-                                                       height={200}
+                                                       height={heightRsiChart}
                                                        yExtents={[0, 100]}
-                                                       origin={(w, h) => [0, h - 500]}
+                                                       origin={rsiOrigin}
+                                                       padding={{top: 10, bottom: 10}}
                                                 >
                                                     <XAxis/>
                                                     <YAxis axisAt='right' orient='right' tickValues={[30, 50, 70]}/>
@@ -758,27 +747,31 @@ class ChartNew extends React.Component {
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
 
                                                 </Chart>
-                                            ) : null}
+                                            ) : null
+                                        }
 
 
-                                        {isMacd ? (
-                                            <Chart id={4}
-                                                   height={200}
-                                                   yExtents={macdCalculator.accessor()}
-                                                   origin={(w, h) => [0, h - 300]}>
+                                        {
+                                            ((this.state.stockCodes[stockArr[0].stock[1]]) && isMacd) ? (
+                                                <Chart id={4}
+                                                       height={heightMacdChart}
+                                                       yExtents={macdCalculator.accessor()}
+                                                       origin={macdOrigin}
+                                                       padding={{top: 20, bottom: 10}}>
 
-                                                <XAxis axisAt="bottom" orient="bottom"/>
-                                                <YAxis axisAt="right" orient="right" ticks={2}/>
 
-                                                <MACDSeries yAccessor={macdCalculator.accessor()}
-                                                            {...macdAppearance} />
+                                                    <XAxis axisAt="bottom" orient="bottom"/>
+                                                    <YAxis axisAt="right" orient="right" ticks={2}/>
 
-                                                <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
-                                                <MouseCoordinateY displayFormat={format(".2f")}/>
+                                                    <MACDSeries yAccessor={macdCalculator.accessor()}
+                                                                {...macdAppearance} />
 
-                                            </Chart>
-                                        ) : null}
+                                                    <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
+                                                    <MouseCoordinateY displayFormat={format(".2f")}/>
 
+                                                </Chart>
+                                            ) : null
+                                        }
                                         <CrossHairCursor/>
                                     </ChartCanvas>
                                 )
@@ -828,6 +821,7 @@ class ChartNew extends React.Component {
                                                         id="min-date"
                                                         type="date"
                                                         name="minDate"
+                                                        disabled={true}
                                                         style={{marginBottom: '18px'}}
                                                         // defaultValue={this.state.minDate}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'minDate')}
@@ -839,6 +833,7 @@ class ChartNew extends React.Component {
                                                         id="max-date"
                                                         type="date"
                                                         name="maxDate"
+                                                        disabled={true}
                                                         // defaultValue={this.state.maxDate}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'maxDate')}
                                                         InputLabelProps={{
@@ -858,7 +853,9 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) ||  false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) ||
+                                                (this.state.indexChart != 'off-index') ||
+                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isMinMax}
@@ -868,7 +865,8 @@ class ChartNew extends React.Component {
                                             }
                                             label="Мин/Макс"
                                             onChange={() => {
-                                                this.setPlotData(this.chartRef.getDataInfo())
+                                                console.log('Данные с изменения checkbox', this.chartRef.getDataInfo())
+                                                this.handleChangeData(this.chartRef.getDataInfo())
                                                 this.handleChangeCheckbox('MinMax');
                                             }}
                                         />
@@ -877,7 +875,9 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) ||
+                                                (this.state.indexChart != 'off-index') ||
+                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTrendLine}
@@ -893,7 +893,9 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) ||
+                                                (this.state.indexChart != 'off-index') ||
+                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isSma}
@@ -915,7 +917,9 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) ||
+                                                (this.state.indexChart != 'off-index') ||
+                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isEma}
@@ -939,7 +943,9 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart != 'off-index')) || false}
+                                            disabled={((this.state.trueCountStockeCodes > 1) ||
+                                                (this.state.indexChart != 'off-index') ||
+                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTotalIncome}
@@ -956,6 +962,8 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
+                                            disabled={((this.state.trueCountStockeCodes > 1) ||
+                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isRsi}
@@ -977,6 +985,8 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
+                                            disabled={((this.state.trueCountStockeCodes > 1) ||
+                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isMacd}
@@ -1013,7 +1023,8 @@ class ChartNew extends React.Component {
                             </div>
                             <div className="iframe-filter__block">
                                 <DownloadExelBtn data={data}/>
-                                <Button variant="contained" color="primary" className='fullscreen-chart' onClick={() => window.open(`http://localhost:3000/`)}>
+                                <Button variant="contained" color="primary" className='fullscreen-chart'
+                                        onClick={() => window.open(`http://localhost:3000/`)}>
                                     Развернуть график
                                 </Button>
                                 <Button variant="contained" color="primary" onClick={() => window.print()}>

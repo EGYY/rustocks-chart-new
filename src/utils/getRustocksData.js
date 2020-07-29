@@ -100,7 +100,7 @@ const getDataRustocks = async (timeGap) => {
         }
     ];
 
-    const response = await fetch(`${proxy}https://info.rsf.ru/streamR/`, {
+    const response = await fetch(`https://info.rsf.ru/streamR/`, {
         method: 'POST',
         body: JSON.stringify(body)
     });

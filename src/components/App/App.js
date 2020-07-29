@@ -6,7 +6,7 @@ import IconButton from "@material-ui/core/IconButton";
 import Chart from "../Chart/Chart";
 import Spinner from "../Spinner/Spinner";
 
-import {getData} from "../../utils/getData";
+
 import {getDataRustocks} from "../../utils/getRustocksData";
 
 import './app.scss';
