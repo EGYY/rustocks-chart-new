@@ -49,10 +49,7 @@ import DownloadExelBtn from "../DownloadExelBtn/DownloadExelBtn";
 class ChartNew extends React.Component {
     constructor(props) {
         super(props);
-
         this.chartRef = React.createRef();
-        this.handleEvents = this.handleEvents.bind(this);
-
         this.state = {
             stockCodes: {},
             isMinMax: false,
@@ -80,31 +77,6 @@ class ChartNew extends React.Component {
         }
     }
 
-
-    // componentDidMount() {
-    //     this.chartRef.subscribe('chartListener', {listener: this.handleEvents})
-    // }
-
-    // componentWillUnmount() {
-    //     // this.chartRef.unsubscribe('chartListener');
-    // }
-
-    handleEvents(type, props, state) {
-        console.log(type)
-        // switch (type) {
-        //     case 'panend':
-        //         const {plotData} = state;
-        //         const minMaxArr = this.findMinMaxValues(plotData);
-        //
-        //         this.setState({
-        //             yMax: minMaxArr[1],
-        //             yMin: minMaxArr[0],
-        //             plotData
-        //         })
-        //         break;
-        // }
-    }
-
     findMinMaxValues(data) {
         let min = data[0].close;
         let max = data[0].close;
@@ -118,12 +90,8 @@ class ChartNew extends React.Component {
         return [min, max];
     }
 
-
     handleChangeData({plotData}) {
         const minMaxArr = this.findMinMaxValues(plotData);
-        console.log(minMaxArr)
-        console.log(plotData)
-        // console.log(this.findMinMaxValues())
         this.setState({
             plotData,
             yMax: minMaxArr[1],
@@ -137,14 +105,17 @@ class ChartNew extends React.Component {
         });
     }
 
-    handleChangeCheckbox(code) {
+    handleChangeCheckbox(code, data) {
         let key = `is${code}`;
         let upd = {};
         upd[key] = !(this.state[key] || false);
         let newState = Object.assign({}, this.state, upd);
         this.setState(newState);
-    }
 
+        if (data && code == 'MinMax') {
+            this.handleChangeData(data)
+        }
+    }
 
     handleChangeCheckboxCode(code) {
         let oldStockCodes = this.state.stockCodes;
@@ -160,7 +131,6 @@ class ChartNew extends React.Component {
         });
 
         const mainCodeStock = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
-        console.log(mainCodeStock)
 
         if(!this.state.stockCodes[mainCodeStock]) {
             this.setState({
@@ -177,7 +147,6 @@ class ChartNew extends React.Component {
             });
         }
     }
-
 
     handleChangeSelect(e) {
         const type = e.target.value;
@@ -242,7 +211,6 @@ class ChartNew extends React.Component {
         }
     }
 
-
     changePeriod(type, e) {
         const period = e.target.value;
         switch (type) {
@@ -292,10 +260,8 @@ class ChartNew extends React.Component {
         })
     }
 
-
     render() {
         let start, end;
-
         const {data: initialData, type, ratio, arrPapers, ticker} = this.props;
         const {
             emaPeriod,
@@ -358,7 +324,7 @@ class ChartNew extends React.Component {
                         },
                         {
                             label: "Объем (акции)",
-                            value: currentItem.volume2 && numberFormat(currentItem.volume2)
+                            value: currentItem.volume2
                         }
                     ]
                         .concat(
@@ -574,7 +540,6 @@ class ChartNew extends React.Component {
         let heightVolumeChart = (this.state.stockCodes[stockArr[0].stock[1]]) ? 200 : 0;
         let heightRsiChart = isRsi ? 200 : 0;
         let heightMacdChart = isMacd ? 200 : 0;
-        // let chartOrigin = (w, h) => [0, h - heightVolumeChart - heightMainChartLines - heightRsiChart - heightMacdChart];
         let rsiOrigin = (w, h) => [0, h - heightRsiChart - heightMacdChart]
         let macdOrigin = (w, h) => [0, h - heightMacdChart]
         let volumeOrigin = (w, h) => [0, h - heightVolumeChart - heightRsiChart - heightMacdChart];
@@ -636,14 +601,9 @@ class ChartNew extends React.Component {
                             </div>
                             {
                                 this.props.isLoading ? <div style={{width: '550px'}}><Spinner/></div> : (
-                                    <ChartCanvas ref={(chart) => {
-                                        this.chartRef = chart
-                                    }}
+                                    <ChartCanvas ref={(chart) => {this.chartRef = chart }}
                                                  margin={{left: 60, right: 60, top: 20, bottom: 24}}
-                                                 onSelect={() => {
-                                                     console.log(this.chartRef.getAllPanConditions())
-                                                     this.handleChangeData(this.chartRef.getDataInfo())
-                                                 }}
+                                                 onSelect={() => {this.handleChangeData(this.chartRef.getDataInfo())}}
                                                  displayXAccessor={displayXAccessor}
                                                  xAccessor={xAccessor}
                                                  type={type}
@@ -727,13 +687,13 @@ class ChartNew extends React.Component {
                                                             label: `${emaCustom.type()}(${emaCustom.options()
                                                                 .windowSize})`,
                                                             value: d => numberFormat(emaCustom.accessor()(d)),
-                                                            stroke: emaCustom.stroke()
+                                                            stroke: "#00F300"
                                                         },
                                                         {
                                                             label: `${smaCustom.type()}(${smaCustom.options()
                                                                 .windowSize})`,
                                                             value: d => numberFormat(smaCustom.accessor()(d)),
-                                                            stroke: smaCustom.stroke()
+                                                            stroke: "#FF0000"
                                                         }
                                                     ])}
                                                     fontSize={15}
@@ -771,11 +731,7 @@ class ChartNew extends React.Component {
 
                                                     <RSISeries yAccessor={rsiCalculator.accessor()}/>
 
-                                                    {/*<RSITooltip origin={[8, 16]} yAccessor={rsiCalculator.accessor()}*/}
-                                                    {/*            options={rsiCalculator.options()}/>*/}
-
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
-
                                                 </Chart>
                                             ) : null
                                         }
@@ -789,7 +745,6 @@ class ChartNew extends React.Component {
                                                        origin={macdOrigin}
                                                        padding={{top: 20, bottom: 10}}>
 
-
                                                     <XAxis axisAt="bottom" orient="bottom"/>
                                                     <YAxis axisAt="right" orient="right" ticks={2}/>
 
@@ -798,7 +753,6 @@ class ChartNew extends React.Component {
 
                                                     <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
-
                                                 </Chart>
                                             ) : null
                                         }
@@ -822,7 +776,6 @@ class ChartNew extends React.Component {
                                     <a href="#" className="iframe-filter__togler">
                                         {isDatePicker ? <span> -</span> : <span> +</span>}
                                     </a>
-
                                 </div>
 
                                 <div className="iframe-filter__flex">
@@ -911,11 +864,7 @@ class ChartNew extends React.Component {
                                                 />
                                             }
                                             label="Мин/Макс"
-                                            onChange={() => {
-                                                console.log('Данные с изменения checkbox', this.chartRef.getDataInfo())
-                                                this.handleChangeData(this.chartRef.getDataInfo())
-                                                this.handleChangeCheckbox('MinMax');
-                                            }}
+                                            onChange={() => {this.handleChangeCheckbox('MinMax', this.chartRef.getDataInfo());}}
                                         />
                                     </div>
                                 </div>

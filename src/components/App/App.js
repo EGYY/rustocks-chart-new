@@ -21,7 +21,7 @@ function App({config}) {
     const [isLoading, setLoading] = useState(true);
 
     useEffect(() => {
-        // getData().then(data => {setData(data)});
+
         getDataRustocks(timeGap).then(data => {
             setLoading(false);
             setData(data.data);
@@ -32,6 +32,11 @@ function App({config}) {
         });
     }, [timeGap]);
 
+    const changeDataByTimeGap = (gap) => {
+        setTimeGap(gap);
+        setLoading(true);
+    }
+
     if(err) {
         return (
             <div className='err-msg'>
@@ -41,11 +46,6 @@ function App({config}) {
                 </IconButton>
             </div>
         )
-    }
-
-    const changeDataByTimeGap = (gap) => {
-        setTimeGap(gap);
-        setLoading(true);
     }
 
 
