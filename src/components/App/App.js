@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 
 import RefreshIcon from '@material-ui/icons/Refresh';
 import IconButton from "@material-ui/core/IconButton";
+import Alert from '@material-ui/lab/Alert';
 
 import Chart from "../Chart/Chart";
 import Spinner from "../Spinner/Spinner";
@@ -34,7 +35,7 @@ function App({config}) {
     if(err) {
         return (
             <div className='err-msg'>
-                <h1>Упс...Обнови страничку</h1>
+                <Alert severity="error">Упс, что-то пошло не так...Обнови страничку!</Alert>
                 <IconButton aria-label="refresh"  onClick={() => document.location.reload(true)}>
                     <RefreshIcon fontSize="large" />
                 </IconButton>

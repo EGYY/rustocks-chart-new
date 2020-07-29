@@ -74,6 +74,7 @@ class ChartNew extends React.Component {
             yMax: null,
             yMin: null,
             indexChart: 'off-index',
+            volumeTypeChart: 'money',
             typeChart: 'close-chart',
             timeGap: '1d'
         }
@@ -158,6 +159,18 @@ class ChartNew extends React.Component {
             trueCountStockeCodes
         });
 
+        const mainCodeStock = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
+        console.log(mainCodeStock)
+
+        if(!this.state.stockCodes[mainCodeStock]) {
+            this.setState({
+                isRsi: false,
+                isMacd: false
+            })
+        };
+
+
+
         if (trueCountStockeCodes > 1) {
             this.setState({
                 typeChart: 'close-chart'
@@ -213,6 +226,18 @@ class ChartNew extends React.Component {
                     timeGap: type
                 });
                 this.props.changeDataByTimeGap(type);
+                break;
+
+            case 'money':
+                this.setState({
+                    volumeTypeChart: type
+                });
+                break;
+
+            case 'pieces':
+                this.setState({
+                    volumeTypeChart: type
+                });
                 break;
         }
     }
@@ -298,6 +323,7 @@ class ChartNew extends React.Component {
         const numberFormat = format(".2f");
 
         const dateFormat = timeFormat("%I:%M");
+        const formatTimeToYMD = timeFormat("%Y-%m-%d");
 
         const macdAppearance = {
             stroke: {
@@ -312,23 +338,27 @@ class ChartNew extends React.Component {
         const tooltipContent = (ys) => {
             return ({currentItem, xAccessor}) => {
                 return {
-                    x: dateFormat(xAccessor(currentItem)),
+                    x: `${formatTimeToYMD(xAccessor(currentItem))} ${dateFormat(xAccessor(currentItem))}`,
                     y: [
                         {
-                            label: "open",
+                            label: "Открытие",
                             value: currentItem.open && numberFormat(currentItem.open)
                         },
                         {
-                            label: "high",
+                            label: "Максимум",
                             value: currentItem.high && numberFormat(currentItem.high)
                         },
                         {
-                            label: "low",
+                            label: "Минимум",
                             value: currentItem.low && numberFormat(currentItem.low)
                         },
                         {
-                            label: "close",
+                            label: "Закрытие",
                             value: currentItem.close && numberFormat(currentItem.close)
+                        },
+                        {
+                            label: "Объем (акции)",
+                            value: currentItem.volume2 && numberFormat(currentItem.volume2)
                         }
                     ]
                         .concat(
@@ -605,7 +635,7 @@ class ChartNew extends React.Component {
                                 </FormControl>
                             </div>
                             {
-                                this.props.isLoading ? <Spinner/> : (
+                                this.props.isLoading ? <div style={{width: '550px'}}><Spinner/></div> : (
                                     <ChartCanvas ref={(chart) => {
                                         this.chartRef = chart
                                     }}
@@ -714,7 +744,7 @@ class ChartNew extends React.Component {
                                         {
                                             this.state.stockCodes[stockArr[0].stock[1]] ? (
                                                 <Chart id={2}
-                                                       yExtents={d => d[stockArr[0].stock[1]].volume}
+                                                       yExtents={ this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}
                                                        height={heightVolumeChart}
                                                        origin={volumeOrigin}
                                                        padding={{top: 20, bottom: 10}}
@@ -722,7 +752,7 @@ class ChartNew extends React.Component {
                                                     <XAxis axisAt="bottom" orient="bottom"/>
                                                     <YAxis axisAt="right" orient="right" ticks={2}/>
 
-                                                    <BarSeries yAccessor={d => d[stockArr[0].stock[1]].volume}/>
+                                                    <BarSeries yAccessor={ this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}/>
                                                 </Chart>
 
                                             ) : null
@@ -846,6 +876,23 @@ class ChartNew extends React.Component {
                                     ) : null
                                 }
                             </div>
+                            <div className="iframe-filter__wrap">
+                                <div className="iframe-filter__title">
+                                    Объем
+                                </div>
+                                <FormControl style={{width: '150px'}} disabled={!this.state.stockCodes[stockArr[0].stock[1]]}>
+                                    <Select
+                                        labelId="demo-simple-select-label"
+                                        id="demo-simple-select"
+                                        value={this.state.volumeTypeChart}
+                                        onChange={(e) => this.handleChangeSelect(e)}
+                                    >
+                                        <MenuItem value='money'>В валюте</MenuItem>
+                                        <MenuItem value='pieces'>В штуках</MenuItem>
+
+                                    </Select>
+                                </FormControl>
+                            </div>
                             <div className="iframe-filter__block">
                                 <div className="iframe-filter__title">
                                     Анализ
@@ -959,11 +1006,11 @@ class ChartNew extends React.Component {
                                     </div>
                                 </div>
 
+
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                            disabled={(!this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isRsi}
@@ -985,8 +1032,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                            disabled={(!this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isMacd}
@@ -1023,8 +1069,10 @@ class ChartNew extends React.Component {
                             </div>
                             <div className="iframe-filter__block">
                                 <DownloadExelBtn data={data}/>
-                                <Button variant="contained" color="primary" className='fullscreen-chart'
-                                        onClick={() => window.open(`http://localhost:3000/`)}>
+                                <Button variant="contained"
+                                        disabled={true}
+                                        color="primary"
+                                        className='fullscreen-chart'>
                                     Развернуть график
                                 </Button>
                                 <Button variant="contained" color="primary" onClick={() => window.print()}>
