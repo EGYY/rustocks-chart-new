@@ -570,8 +570,8 @@ class ChartNew extends React.Component {
 
         let yExtents = [
             ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.percentData[this.state.indexChart].close : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
-            smaCustom.accessor(),
-            emaCustom.accessor()
+            ((this.state.trueCountStockeCodes >= 1) || (this.state.indexChart !== 'off-index')) ? null : smaCustom.accessor(),
+            ((this.state.trueCountStockeCodes >= 1) || (this.state.indexChart !== 'off-index')) ? null : emaCustom.accessor()
         ];
 
 
