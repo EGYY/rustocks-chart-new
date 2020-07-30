@@ -1,0 +1,145 @@
+function tryRender() {
+    const config = {
+        stockData: [
+            {
+                "code": "MICEXC",
+                "from": 1293829200,
+                "to": 1593205200
+            },
+            {
+                "code": "MICEX",
+                "ticker": "WGC4",
+                "from": 1293829200,
+                "to": 1593205200
+            },
+            {
+                "code": "MICEX",
+                "ticker": "SNGS",
+                "from": 1293829200,
+                "to": 1593205200
+            }
+        ],
+        stockColors: ['#baff00', '#7b3ff2', '#3ff287', '#3fe9f2', '#f2f23f', '#f2603f', '#f23fa4', '#3ff2b0'],
+        volumeChart: {
+            color: '#7b3ff2'
+        },
+        rsiChart: {
+            lineColor: '#000',
+            insideLineColor: '#7b3ff2',
+            outSideLineColor: '#baff00',
+            topVerticalLineColor: "#B8C2CC",
+            midVerticalLineColor: "#8795A1",
+            bottomVerticalLineColor: "#B8C2CC"
+        },
+        macdChart: {
+            macdLineColor: '#7b3ff2',
+            signalLineColor: '#baff00',
+            histogramColor: '#3ff287'
+        },
+        candleStickChart: {
+            colorHigh: '#26a69a',
+            colorLow: '#ef5350'
+        },
+        ohlChart: {
+            color: '#7b3ff2'
+        },
+        areaChart: {
+            lineColor: '#7b3ff2',
+            fillAreaColor: '#c2a5f6',
+            opacityArea: 0.1,
+            opcityLine: 1,
+            lineWidth: 2
+        },
+        totalIncome: {
+            lineColor: '#3ff287',
+            fillAreaColor: '#3ff287',
+            opacityArea: 0.1,
+            opcityLine: 1,
+            lineWidth: 2
+        },
+        minMaxIndicator: {
+            minIndicatorColor: '#ef5350',
+            maxIndicatorColor: '#26a69a'
+        },
+        trendLine: {
+            color: '#26a69a',
+            width: 1,
+            opacity: 1
+        },
+        hoverTooltip: {
+            backgroundColor: '#fcfbfd',
+            backgroundOpacity: 0.6,
+            backgroundVerticalLine: '#fcfbfd',
+            backgroundOpacityVerticalLine: 0.1,
+            borderColor: '#fcfbfd',
+            fontColor: '#000000'
+        },
+        sma: {
+            color: '#26a69a'
+        },
+        ema: {
+            color: '#ef5350'
+        },
+        spinner: {
+            color: '#7b3ff2'
+        },
+        select: {
+            bottomLine: '2px solid #7b3ff2',
+            focusBottomLine: '2px solid #7b3ff2'
+        },
+        btn: {
+            background: 'linear-gradient(45deg, #9f70fa 30%, #7b3ff2 90%)',
+            color: '#fff',
+            height: 38,
+            width: 250,
+            boxShadow: '0 3px 5px 2px rgba(0, 0, 0, .3)',
+            borderRadius: 3,
+            border: 0
+        },
+        icon: {
+            borderRadius: 3,
+            width: 16,
+            height: 16,
+            boxShadow: 'inset 0 0 0 1px rgba(16,22,26,.2), inset 0 -1px 0 rgba(16,22,26,.1)',
+            backgroundColor: '#f5f8fa',
+            backgroundImage: 'linear-gradient(180deg,hsla(0,0%,100%,.8),hsla(0,0%,100%,0))',
+            '$root.Mui-focusVisible &': {
+                outline: '2px auto rgba(19,124,189,.6)',
+                outlineOffset: 2,
+            },
+            'input:hover ~ &': {
+                backgroundColor: '#ebf1f5',
+            },
+            'input:disabled ~ &': {
+                boxShadow: 'none',
+                background: 'rgba(206,217,224,.5)',
+            },
+        },
+        checkedIcon: {
+            backgroundColor: '#7b3ff2',
+            backgroundImage: 'linear-gradient(180deg,hsla(0,0%,100%,.1),hsla(0,0%,100%,0))',
+            '&:before': {
+                display: 'block',
+                width: 16,
+                height: 16,
+                backgroundImage:
+                    "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath" +
+                    " fill-rule='evenodd' clip-rule='evenodd' d='M12 5c-.28 0-.53.11-.71.29L7 9.59l-2.29-2.3a1.003 " +
+                    "1.003 0 00-1.42 1.42l3 3c.18.18.43.29.71.29s.53-.11.71-.29l5-5A1.003 1.003 0 0012 5z' fill='%23fff'/%3E%3C/svg%3E\")",
+                content: '""',
+            },
+            'input:hover ~ &': {
+                backgroundColor: '#7b3ff2',
+            },
+        }
+    }
+
+    window.chartConfig = config;
+    if (typeof window.renderCharts !== "undefined") {
+        window.renderCharts("root", config);
+    } else {
+        requestAnimationFrame(tryRender);
+    }
+}
+
+tryRender();

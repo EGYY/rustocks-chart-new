@@ -13,7 +13,7 @@ import {getDataRustocks} from "../../utils/getRustocksData";
 import './app.scss';
 
 function App({config}) {
-    const {primaryColor, secondaryColor} = config;
+
     const [data, setData] = useState([]);
     const [err, setErr] = useState(false);
     const [timeGap, setTimeGap] = useState('1d');
@@ -21,8 +21,7 @@ function App({config}) {
     const [isLoading, setLoading] = useState(true);
 
     useEffect(() => {
-
-        getDataRustocks(timeGap).then(data => {
+        getDataRustocks(timeGap, config.stockData, config.stockColors).then(data => {
             setLoading(false);
             setData(data.data);
             serArrPapers(data.arrPapers);
@@ -51,7 +50,18 @@ function App({config}) {
 
     if (data.length === 0 || arrPapers.length === 0) {
         return (
-            <Spinner/>
+            <div style={
+                {
+                    display: 'flex',
+                    width: '100%',
+                    height: '100vh',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }
+            }>
+                <Spinner/>
+            </div>
+
         );
     }
 
@@ -97,6 +107,7 @@ function App({config}) {
                    data={formatedData}
                    arrPapers={arrPapers}
                    ticker={ticker}
+                   config={config}
                    changeDataByTimeGap={changeDataByTimeGap}
             />
         </div>

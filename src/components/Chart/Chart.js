@@ -40,6 +40,9 @@ import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
+import {withStyles} from '@material-ui/core/styles';
+
+import clsx from "clsx";
 
 import './chart.scss';
 import Spinner from "../Spinner/Spinner";
@@ -73,9 +76,11 @@ class ChartNew extends React.Component {
             indexChart: 'off-index',
             volumeTypeChart: 'money',
             typeChart: 'close-chart',
+            stockAnaliticsCheckboxCode: '',
             timeGap: '1d'
         }
     }
+
 
     findMinMaxValues(data) {
         let min = data[0].close;
@@ -112,9 +117,10 @@ class ChartNew extends React.Component {
         let newState = Object.assign({}, this.state, upd);
         this.setState(newState);
 
-        if (data && code == 'MinMax') {
+        if (data && code === 'MinMax') {
             this.handleChangeData(data)
         }
+
     }
 
     handleChangeCheckboxCode(code) {
@@ -130,20 +136,32 @@ class ChartNew extends React.Component {
             trueCountStockeCodes
         });
 
+        // if (trueCountStockeCodes <= 1) {
+        //     const activeCheckboxCode = Object.entries(this.state.stockCodes).filter(item => item[1] === true)[0][0];
+        //     console.log(activeCheckboxCode)
+        //     this.setState({
+        //         stockAnaliticsCheckboxCode: activeCheckboxCode
+        //     })
+        // }
+
         const mainCodeStock = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
 
-        if(!this.state.stockCodes[mainCodeStock]) {
+        if (!this.state.stockCodes[mainCodeStock]) {
             this.setState({
                 isRsi: false,
                 isMacd: false
             })
-        };
-
+        }
+        ;
 
 
         if (trueCountStockeCodes > 1) {
             this.setState({
-                typeChart: 'close-chart'
+                typeChart: 'close-chart',
+                isMinMax: false,
+                isTrendLine: false,
+                isSma: false,
+                isEma: false,
             });
         }
     }
@@ -287,6 +305,7 @@ class ChartNew extends React.Component {
 
         console.log(arrPapers);
         const numberFormat = format(".2f");
+        const numberFormatMillions = format(".2s");
 
         const dateFormat = timeFormat("%I:%M");
         const formatTimeToYMD = timeFormat("%Y-%m-%d");
@@ -324,7 +343,7 @@ class ChartNew extends React.Component {
                         },
                         {
                             label: "Объем (акции)",
-                            value: currentItem.volume2
+                            value: currentItem.volume2 && numberFormatMillions(currentItem.volume2)
                         }
                     ]
                         .concat(
@@ -355,24 +374,32 @@ class ChartNew extends React.Component {
 
                 case "candle-chart":
                     return (
-                        <CandlestickSeries yAccessor={
-                            d => ((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ?
+                        <CandlestickSeries
+                            fill={(d) => d.close > d.open ? this.props.config.candleStickChart.colorHigh : this.props.config.candleStickChart.colorLow}
+                            yAccessor={d => ((this.state.trueCountStockeCodes > 1) ||
+                                (this.state.indexChart !== 'off-index')) ?
                                 ({
                                     open: d.percentData[code].open,
                                     high: d.percentData[code].high,
                                     low: d.percentData[code].low,
                                     close: d.percentData[code].close
                                 }) :
-                                ({open: d[code].open, high: d[code].high, low: d[code].low, close: d[code].close})
+                                ({
+                                    open: d[code].open,
+                                    high: d[code].high,
+                                    low: d[code].low,
+                                    close: d[code].close
+                                })
 
-                        }/>
+                            }/>
                     );
                     break;
 
                 case "ohl-chart":
                     return (
                         <OHLCSeries yAccessor={
-                            d => ((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ?
+                            d => ((this.state.trueCountStockeCodes > 1) ||
+                                (this.state.indexChart !== 'off-index')) ?
                                 ({
                                     open: d.percentData[code].open,
                                     high: d.percentData[code].high,
@@ -382,15 +409,27 @@ class ChartNew extends React.Component {
                                 ({open: d[code].open, high: d[code].high, low: d[code].low, close: d[code].close})
 
                         }
-                                    stroke="#529aff"/>
+                                    stroke={this.props.config.ohlChart.color}/>
                     );
                     break;
 
                 case 'area-chart':
                     return (
                         <AreaSeries
+                            fill={this.props.config.areaChart.fillAreaColor}
+                            opacity={this.props.config.areaChart.opacityArea}
+                            stroke={this.props.config.areaChart.lineColor}
+                            strokeWidth={this.props.config.areaChart.lineWidth}
+                            strokeOpacity={this.props.config.areaChart.opcityLine}
                             yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.percentData[code].close : d => d[code].close}
                         />
+                    );
+                    break;
+                default:
+                    return (
+                        <LineSeries
+                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.percentData[code].close : d => d[code].close}
+                            stroke={initialData[0][code].color}/>
                     );
                     break;
             }
@@ -420,7 +459,9 @@ class ChartNew extends React.Component {
                     key={index}
                     control={
                         <Checkbox
-                            className='stock-checkbox'
+                            checkedIcon={<span
+                                className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                            icon={<span className={this.props.classes.icon}/>}
                             checked={this.state.stockCodes[item.stock[1]] || false}
                             onChange={() => {
                                 this.handleChangeCheckboxCode(item.stock[1])
@@ -437,29 +478,29 @@ class ChartNew extends React.Component {
 
         const emaCustom = ema()
             .options({windowSize: +emaPeriod})
-            .merge((d, c) => {
+            .merge(({[stockArr[0].stock[1]]: data}, c) => {
                 {
-                    d[stockArr[0].stock[1]].emaCustom = c;
+                    data.emaCustom = c;
                 }
 
             })
-            .accessor(d => d[stockArr[0].stock[1]].emaCustom);
+            .accessor(({[stockArr[0].stock[1]]: data}) => data.emaCustom);
 
         const smaCustom = sma()
             .options({
                 windowSize: +smaPeriod,
             })
-            .merge((d, c) => {
-                d.WGC4.smaCustom = c
+            .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                data.smaCustom = c
             })
-            .accessor(d => d.WGC4.smaCustom);
+            .accessor(({[stockArr[0].stock[1]]: data}) => data.smaCustom);
 
         const rsiCalculator = rsi()
             .options({windowSize: +rsiPeriod})
-            .merge((d, c) => {
-                d.WGC4.rsi = c;
+            .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                data.rsi = c;
             })
-            .accessor(d => d.WGC4.rsi);
+            .accessor(({[stockArr[0].stock[1]]: data}) => data.rsi);
 
         const macdCalculator = macd()
             .options({
@@ -467,10 +508,10 @@ class ChartNew extends React.Component {
                 slow: slowMacdPeriod,
                 signal: signalMacdPeriod,
             })
-            .merge((d, c) => {
-                d.WGC4.macd = c;
+            .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                data.macd = c;
             })
-            .accessor(d => d.WGC4.macd);
+            .accessor(({[stockArr[0].stock[1]]: data}) => data.macd);
 
 
         const calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
@@ -517,7 +558,11 @@ class ChartNew extends React.Component {
                 {
                     start: [start, trend.calcY(xMax)],
                     end: [end, trend.calcY(xMin)],
-                    appearance: {stroke: "green"},
+                    appearance: {
+                        strokeWidth: this.props.config.trendLine.width,
+                        strokeOpacity: this.props.config.trendLine.opacity,
+                        stroke: this.props.config.trendLine.color
+                    },
                     type: "XLINE"
                 }
             ];
@@ -533,7 +578,7 @@ class ChartNew extends React.Component {
         stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) ||
             (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.percentData[item.stock[1]].close : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
 
-        // console.log(yExtents)
+        console.log(this.state)
 
 
         let heightMainChartLines = 200;
@@ -566,6 +611,7 @@ class ChartNew extends React.Component {
                                     </div>
                                     <FormControl style={{width: '150px'}}>
                                         <Select
+                                            className={this.props.classes.input}
                                             labelId="demo-simple-select-label"
                                             id="demo-simple-select"
                                             value={this.state.indexChart}
@@ -587,6 +633,7 @@ class ChartNew extends React.Component {
                                     style={{width: '150px'}}
                                 >
                                     <Select
+                                        className={this.props.classes.input}
                                         labelId="demo-simple-select-label"
                                         id="demo-simple-select"
                                         value={typeChart}
@@ -600,10 +647,14 @@ class ChartNew extends React.Component {
                                 </FormControl>
                             </div>
                             {
-                                this.props.isLoading ? <div style={{width: '550px'}}><Spinner/></div> : (
-                                    <ChartCanvas ref={(chart) => {this.chartRef = chart }}
+                                this.props.isLoading ? <div style={{width: '550px', display:'flex', justifyContent:'center', alignItems:'center', height: heightChartCanvas}}><Spinner/></div> : (
+                                    <ChartCanvas ref={(chart) => {
+                                        this.chartRef = chart
+                                    }}
                                                  margin={{left: 60, right: 60, top: 20, bottom: 24}}
-                                                 onSelect={() => {this.handleChangeData(this.chartRef.getDataInfo())}}
+                                                 onSelect={() => {
+                                                     this.handleChangeData(this.chartRef.getDataInfo())
+                                                 }}
                                                  displayXAccessor={displayXAccessor}
                                                  xAccessor={xAccessor}
                                                  type={type}
@@ -635,16 +686,15 @@ class ChartNew extends React.Component {
                                             }
 
                                             {
-                                                this.state.indexChart != 'off-index' ? (
+                                                this.state.indexChart !== 'off-index' ? (
                                                     <LineSeries
                                                         yAccessor={this.state.trueCountStockeCodes >= 1 ? d => d.percentData[this.state.indexChart].close : d => d[this.state.indexChart].close}
-                                                        stroke="#FF0000"/>
+                                                        stroke={data[0][this.state.indexChart].color}/>
                                                 ) : null
                                             }
 
                                             {isTrendLine ? (
                                                 <TrendLine
-                                                    type="RAY"
                                                     enabled={false}
                                                     snap={false}
                                                     trends={trendData()}
@@ -652,25 +702,32 @@ class ChartNew extends React.Component {
                                             ) : null
                                             }
 
-                                            {isTotalIncome ? <AreaSeries
-                                                yAccessor={
-                                                    this.state.trueCountStockeCodes > 1 ?
+                                            {isTotalIncome ?
+                                                <AreaSeries
+                                                    fill={this.props.config.totalIncome.fillAreaColor}
+                                                    opacity={this.props.config.totalIncome.opacityArea}
+                                                    stroke={this.props.config.totalIncome.lineColor}
+                                                    strokeWidth={this.props.config.totalIncome.lineWidth}
+                                                    strokeOpacity={this.props.config.totalIncome.opcityLine}
+                                                    yAccessor={this.state.trueCountStockeCodes > 1 ?
                                                         d => d.percentData[stockArr[0].stock[1]].close :
                                                         d => d[stockArr[0].stock[1]].close}/> : null}
 
                                             {isEma ?
-                                                <LineSeries yAccessor={emaCustom.accessor()} stroke="#00F300"/> : null}
+                                                <LineSeries yAccessor={emaCustom.accessor()}
+                                                            stroke={this.props.config.ema.color}/> : null}
                                             {isSma ?
-                                                <LineSeries yAccessor={smaCustom.accessor()} stroke="#FF0000"/> : null}
+                                                <LineSeries yAccessor={smaCustom.accessor()}
+                                                            stroke={this.props.config.sma.color}/> : null}
                                             {isMinMax ? (
                                                 <React.Fragment>
                                                     <EdgeIndicator itemType="first" orient="right" edgeAt="right"
-                                                                   yAccessor={() => yMax != null ? yMax : null}
-                                                                   fill={"#6BA583"}
+                                                                   yAccessor={() => yMax !== null ? yMax : null}
+                                                                   fill={this.props.config.minMaxIndicator.maxIndicatorColor}
                                                     />
                                                     <EdgeIndicator itemType="first" orient="left" edgeAt="left"
-                                                                   yAccessor={() => yMin != null ? yMin : null}
-                                                                   fill={"#FF0000"}
+                                                                   yAccessor={() => yMin !== null ? yMin : null}
+                                                                   fill={this.props.config.minMaxIndicator.minIndicatorColor}
                                                     />
                                                 </React.Fragment>
                                             ) : null}
@@ -680,20 +737,25 @@ class ChartNew extends React.Component {
 
                                             {this.state.stockCodes[stockArr[0].stock[1]] ? (
                                                 <HoverTooltip
-                                                    backgroundShapeSVG='#fff'
+                                                    fill={this.props.config.hoverTooltip.backgroundColor}
+                                                    bgFill={this.props.config.hoverTooltip.backgroundVerticalLine}
+                                                    bgOpacity={this.props.config.hoverTooltip.backgroundOpacityVerticalLine}
+                                                    opacity={this.props.config.hoverTooltip.backgroundOpacity}
+                                                    stroke={this.props.config.hoverTooltip.borderColor}
+                                                    fontFill={this.props.config.hoverTooltip.fontColor}
                                                     yAccessor={emaCustom.accessor()}
                                                     tooltipContent={tooltipContent([
                                                         {
                                                             label: `${emaCustom.type()}(${emaCustom.options()
                                                                 .windowSize})`,
                                                             value: d => numberFormat(emaCustom.accessor()(d)),
-                                                            stroke: "#00F300"
+                                                            stroke: `${this.props.config.ema.color}`
                                                         },
                                                         {
                                                             label: `${smaCustom.type()}(${smaCustom.options()
                                                                 .windowSize})`,
                                                             value: d => numberFormat(smaCustom.accessor()(d)),
-                                                            stroke: "#FF0000"
+                                                            stroke: `${this.props.config.sma.color}`
                                                         }
                                                     ])}
                                                     fontSize={15}
@@ -704,15 +766,22 @@ class ChartNew extends React.Component {
                                         {
                                             this.state.stockCodes[stockArr[0].stock[1]] ? (
                                                 <Chart id={2}
-                                                       yExtents={ this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}
+                                                       yExtents={this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}
                                                        height={heightVolumeChart}
                                                        origin={volumeOrigin}
                                                        padding={{top: 20, bottom: 10}}
                                                 >
                                                     <XAxis axisAt="bottom" orient="bottom"/>
-                                                    <YAxis axisAt="right" orient="right" ticks={2}/>
+                                                    <YAxis axisAt="right"
+                                                           orient="right"
+                                                           ticks={4}
+                                                           tickFormat={value => numberFormatMillions(value)}
+                                                    />
 
-                                                    <BarSeries yAccessor={ this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}/>
+                                                    <MouseCoordinateY displayFormat={numberFormatMillions}/>
+
+                                                    <BarSeries fill={this.props.config.volumeChart.color}
+                                                               yAccessor={this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}/>
                                                 </Chart>
 
                                             ) : null
@@ -729,7 +798,17 @@ class ChartNew extends React.Component {
                                                     <XAxis/>
                                                     <YAxis axisAt='right' orient='right' tickValues={[30, 50, 70]}/>
 
-                                                    <RSISeries yAccessor={rsiCalculator.accessor()}/>
+                                                    <RSISeries stroke={
+                                                        {
+                                                            line: this.props.config.rsiChart.lineColor,
+                                                            outsideThreshold: this.props.config.rsiChart.outSideLineColor,
+                                                            insideThreshold: this.props.config.rsiChart.insideLineColor,
+                                                            top: this.props.config.rsiChart.topVerticalLineColor,
+                                                            middle: this.props.config.rsiChart.midVerticalLineColor,
+                                                            bottom: this.props.config.rsiChart.bottomVerticalLineColor,
+                                                        }
+                                                    }
+                                                               yAccessor={rsiCalculator.accessor()}/>
 
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
                                                 </Chart>
@@ -749,7 +828,13 @@ class ChartNew extends React.Component {
                                                     <YAxis axisAt="right" orient="right" ticks={2}/>
 
                                                     <MACDSeries yAccessor={macdCalculator.accessor()}
-                                                                {...macdAppearance} />
+                                                                fill={{divergence: this.props.config.macdChart.histogramColor}}
+                                                                stroke={
+                                                                    {
+                                                                        macd: this.props.config.macdChart.macdLineColor,
+                                                                        signal: this.props.config.macdChart.signalLineColor,
+                                                                    }
+                                                                }/>
 
                                                     <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
@@ -781,6 +866,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <FormControl style={{width: '150px'}}>
                                         <Select
+                                            className={this.props.classes.input}
                                             labelId="demo-simple-select-label"
                                             id="range"
                                             value={timeGap}
@@ -833,8 +919,10 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__title">
                                     Объем
                                 </div>
-                                <FormControl style={{width: '150px'}} disabled={!this.state.stockCodes[stockArr[0].stock[1]]}>
+                                <FormControl style={{width: '150px'}}
+                                             disabled={!this.state.stockCodes[stockArr[0].stock[1]]}>
                                     <Select
+                                        className={this.props.classes.input}
                                         labelId="demo-simple-select-label"
                                         id="demo-simple-select"
                                         value={this.state.volumeTypeChart}
@@ -854,17 +942,22 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart != 'off-index') ||
+                                                (this.state.indexChart !== 'off-index') ||
                                                 !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
+                                                    checkedIcon={<span
+                                                        className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                    icon={<span className={this.props.classes.icon}/>}
                                                     checked={isMinMax}
                                                     name="min-max"
                                                     color="primary"
                                                 />
                                             }
                                             label="Мин/Макс"
-                                            onChange={() => {this.handleChangeCheckbox('MinMax', this.chartRef.getDataInfo());}}
+                                            onChange={() => {
+                                                this.handleChangeCheckbox('MinMax', this.chartRef.getDataInfo());
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -872,11 +965,14 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart != 'off-index') ||
+                                                (this.state.indexChart !== 'off-index') ||
                                                 !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTrendLine}
+                                                    checkedIcon={<span
+                                                        className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                    icon={<span className={this.props.classes.icon}/>}
                                                     name="trend-line"
                                                     color="primary"
                                                 />
@@ -890,11 +986,14 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart != 'off-index') ||
+                                                (this.state.indexChart !== 'off-index') ||
                                                 !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isSma}
+                                                    checkedIcon={<span
+                                                        className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                    icon={<span className={this.props.classes.icon}/>}
                                                     name="SMA"
                                                     color="primary"
                                                 />
@@ -914,11 +1013,14 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart != 'off-index') ||
+                                                (this.state.indexChart !== 'off-index') ||
                                                 !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isEma}
+                                                    checkedIcon={<span
+                                                        className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                    icon={<span className={this.props.classes.icon}/>}
                                                     name="EMA"
                                                     color="primary"
                                                 />
@@ -940,11 +1042,14 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart != 'off-index') ||
+                                                (this.state.indexChart !== 'off-index') ||
                                                 !this.state.stockCodes[stockArr[0].stock[1]]) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTotalIncome}
+                                                    checkedIcon={<span
+                                                        className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                    icon={<span className={this.props.classes.icon}/>}
                                                     name="total-income"
                                                     color="primary"
                                                 />
@@ -963,6 +1068,9 @@ class ChartNew extends React.Component {
                                             control={
                                                 <Checkbox
                                                     checked={isRsi}
+                                                    checkedIcon={<span
+                                                        className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                    icon={<span className={this.props.classes.icon}/>}
                                                     name="RSI"
                                                     color="primary"
                                                 />
@@ -985,8 +1093,11 @@ class ChartNew extends React.Component {
                                             control={
                                                 <Checkbox
                                                     checked={isMacd}
+                                                    checkedIcon={<span
+                                                        className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                    icon={<span className={this.props.classes.icon}/>}
                                                     name="MACD"
-                                                    color="primary"
+                                                    color="default"
                                                 />
                                             }
                                             label="MACD"
@@ -1018,13 +1129,15 @@ class ChartNew extends React.Component {
                             </div>
                             <div className="iframe-filter__block">
                                 <DownloadExelBtn data={data}/>
-                                <Button variant="contained"
-                                        disabled={true}
-                                        color="primary"
-                                        className='fullscreen-chart'>
+                                <Button className={this.props.classes.btn}
+                                        variant="contained"
+                                        color="primary">
                                     Развернуть график
                                 </Button>
-                                <Button variant="contained" color="primary" onClick={() => window.print()}>
+                                <Button className={this.props.classes.btn}
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => window.print()}>
                                     Распечатать график
                                 </Button>
                             </div>
@@ -1038,6 +1151,23 @@ class ChartNew extends React.Component {
 }
 
 
-export default withDeviceRatio()(ChartNew);
+const config = window.chartConfig;
+console.log(config)
+
+const styles = {
+    input: {
+        '&:focus': {
+            borderBottom: config.select.focusBottomLine
+        },
+        '&:after': {
+            borderBottom: config.select.bottomLine
+        }
+    },
+    btn: {...config.btn},
+    icon: {...config.icon},
+    checkedIcon: {...config.checkedIcon}
+}
+
+export default withStyles(styles)(withDeviceRatio()(ChartNew));
 
 // export default withSize({ style: { minHeight: 600 } })(withDeviceRatio()(ChartNew));

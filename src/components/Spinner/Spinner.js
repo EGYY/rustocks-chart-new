@@ -1,11 +1,17 @@
 import React from "react";
+import CircularProgress from '@material-ui/core/CircularProgress';
+import {withStyles} from "@material-ui/styles";
 
-import './spinner.css';
-
-const Spinner = () => {
+const Spinner = ({classes}) => {
     return(
-        <div className="loader">Loading...</div>
+            <CircularProgress  className={classes.bottom}/>
     );
 }
 
-export default Spinner;
+const styles = {
+    bottom: {
+        color: window.chartConfig.spinner.color
+    }
+}
+
+export default withStyles(styles)(Spinner);
