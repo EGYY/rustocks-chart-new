@@ -278,6 +278,11 @@ class ChartNew extends React.Component {
         })
     }
 
+    openFullSreenApp(url) {
+        window.open(`${url}`, 'fullSreenStockApp', 'width=600, height=400')
+    }
+
+
     render() {
         let start, end;
         const {data: initialData, type, ratio, arrPapers, ticker} = this.props;
@@ -1130,6 +1135,7 @@ class ChartNew extends React.Component {
                             <div className="iframe-filter__block">
                                 <DownloadExelBtn data={data}/>
                                 <Button className={this.props.classes.btn}
+                                        onClick={() => this.openFullSreenApp(this.props.config.urlFullSrceenApp)}
                                         variant="contained"
                                         color="primary">
                                     Развернуть график
