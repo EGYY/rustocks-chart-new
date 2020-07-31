@@ -29,6 +29,8 @@ import {
 import {ema, macd, sma, rsi} from "react-financial-charts/lib/indicator";
 
 import {TrendLine} from "react-stockcharts/lib/interactive";
+import {fitDimensions} from "react-stockcharts/lib/helper";
+
 import createTrend from 'trendline';
 
 import FormGroup from '@material-ui/core/FormGroup';
@@ -40,6 +42,7 @@ import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
+
 import {withStyles} from '@material-ui/core/styles';
 
 import clsx from "clsx";
@@ -281,7 +284,7 @@ class ChartNew extends React.Component {
     }
 
     openFullSreenApp(url) {
-        window.open(`${url}`, 'fullSreenStockApp', 'width=600, height=400')
+        window.open(`${url}`, 'fullSreenStockApp', 'width=800, height=600')
     }
 
 
@@ -309,6 +312,7 @@ class ChartNew extends React.Component {
             timeGap,
             plotData
         } = this.state;
+
 
         const numberFormat = format(".2f");
         const numberFormatMillions = format(".2s");
@@ -653,7 +657,13 @@ class ChartNew extends React.Component {
                                 </FormControl>
                             </div>
                             {
-                                this.props.isLoading ? <div style={{width: '550px', display:'flex', justifyContent:'center', alignItems:'center', height: heightChartCanvas}}><Spinner/></div> : (
+                                this.props.isLoading ? <div style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    height: heightChartCanvas
+                                }}><Spinner/></div> : (
                                     <ChartCanvas ref={(chart) => {
                                         this.chartRef = chart
                                     }}
@@ -670,13 +680,13 @@ class ChartNew extends React.Component {
                                                  ratio={ratio}
                                                  panEvent={true}
                                                  height={heightChartCanvas}
-                                                 width={550}
+                                                 width={this.props.width > 1300 ? this.props.width - 500 : this.props.width >= 800 ? this.props.width - 400 : this.props.width < 800 ? this.props.width - 200 : this.props.width - 50}
                                                  xExtents={[100, 200]}>
 
 
                                         <Chart id={1}
                                                height={heightMainChartLines}
-                                               width={500}
+                                            // width={this.props.width}
                                                padding={{top: 10, bottom: 10}}
                                                yExtents={yExtents}>
 
@@ -1175,6 +1185,6 @@ const styles = {
     checkedIcon: {...config.checkedIcon}
 }
 
-export default withStyles(styles)(withDeviceRatio()(ChartNew));
+export default (withStyles(styles)(withDeviceRatio()(fitDimensions(ChartNew))));
 
 // export default withSize({ style: { minHeight: 600 } })(withDeviceRatio()(ChartNew));

@@ -26,9 +26,9 @@ body {
 
 .iframe-wrap {
   position: relative;
-  margin: 0 auto;
+  padding: 30px 50px;
   display: flex;
-  max-width: 730px;
+  width: 100%;
   box-sizing: border-box;
 }
 
@@ -59,8 +59,14 @@ body {
 }
 
 .iframe-col__left {
-  width: 536px;
+  width: 80%;
+  height: 100%;
   margin-right: 8px;
+}
+
+.iframe-col__right {
+  height: 100%;
+  width: 20%;
 }
 
 .iframe-chart {

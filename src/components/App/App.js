@@ -30,9 +30,6 @@ function App({config}) {
                 setData(null)
             }
 
-
-
-
         }).catch((e) => {
             console.log(e);
             setErr(true)
