@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 
 const parseData = (data, stockColors) => {
     let parsedData = [];
+    let formatData
 
     for (let i = 0; i < data.length; i++) {
         if (Object.keys(data[i].values).length !== 0) {
@@ -62,7 +63,13 @@ const parseData = (data, stockColors) => {
 
     }
 
-    const formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
+    console.log(parsedData)
+
+    if (parsedData.length !== 0) {
+        formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
+    }else {
+        formatData = null
+    }
 
     return formatData;
 }

@@ -23,8 +23,16 @@ function App({config}) {
     useEffect(() => {
         getDataRustocks(timeGap, config.stockData, config.stockColors).then(data => {
             setLoading(false);
-            setData(data.data);
-            serArrPapers(data.arrPapers);
+            if (data !== null){
+                setData(data.data);
+                serArrPapers(data.arrPapers);
+            }else {
+                setData(null)
+            }
+
+
+
+
         }).catch((e) => {
             console.log(e);
             setErr(true)
@@ -34,6 +42,17 @@ function App({config}) {
     const changeDataByTimeGap = (gap) => {
         setTimeGap(gap);
         setLoading(true);
+    }
+
+    if(data === null) {
+        return (
+            <div className='err-msg'>
+                <Alert severity="error">Упс... похоже данных за текущий период нет, пожалуйста обновите страницу</Alert>
+                <IconButton aria-label="refresh"  onClick={() => document.location.reload(true)}>
+                    <RefreshIcon fontSize="large" />
+                </IconButton>
+            </div>
+        )
     }
 
     if(err) {
@@ -48,7 +67,7 @@ function App({config}) {
     }
 
 
-    if (data.length === 0 || arrPapers.length === 0) {
+    if (arrPapers.length === 0) {
         return (
             <div style={
                 {
