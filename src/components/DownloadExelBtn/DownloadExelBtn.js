@@ -1,16 +1,26 @@
 import React from "react";
 import Button from "@material-ui/core/Button";
-import {withStyles} from "@material-ui/styles";
+import { makeStyles } from '@material-ui/core/styles';
+
 import ReactExport from "react-data-export";
 
 const ExcelFile = ReactExport.ExcelFile;
 const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
 const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
 
-const DownloadExelBtn = ({data, classes}) => {
+
+const config = window.chartConfig;
+
+const styles = makeStyles({
+    root: {...config.btn}
+});
+
+const DownloadExelBtn = ({data}) => {
+    const classes = styles();
 
     return (
-        <ExcelFile element={<Button className={classes.btn} variant="contained" color="primary">Скачать в Excel</Button>}>
+        <ExcelFile element={<Button classes={{root: classes.root}} variant="contained" color="primary">Скачать в
+            Excel</Button>}>
             <ExcelSheet data={data} name="MOEX">
                 <ExcelColumn label="Date" value="date"/>
                 <ExcelColumn label="Open" value="open"/>
@@ -23,19 +33,5 @@ const DownloadExelBtn = ({data, classes}) => {
     );
 }
 
-const config = window.chartConfig;
 
-
-const styles = {
-    btn: {
-        background: config.btn.background,
-        color: config.btn.color,
-        border: config.btn.border,
-        height: config.btn.height,
-        width: config.btn.width,
-        borderRadius: config.btn.borderRadius,
-        boxShadow: config.btn.boxShadow,
-    },
-}
-
-export default withStyles(styles)(DownloadExelBtn);
+export default DownloadExelBtn;

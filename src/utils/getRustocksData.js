@@ -63,7 +63,7 @@ const parseData = (data, stockColors) => {
 
     }
 
-    console.log(parsedData)
+    // console.log(parsedData)
 
     if (parsedData.length !== 0) {
         formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
@@ -92,7 +92,7 @@ const getDataRustocks = async (timeGap, stockArr, stockColors) => {
 
     const result = await response.json();
 
-    console.log(result);
+    // console.log(result);
 
     const arrStockPapers = result.map(item => {
         // console.log(`Item ${item} length values ${Object.keys(item.values).length}`)
@@ -114,10 +114,10 @@ const getDataRustocks = async (timeGap, stockArr, stockColors) => {
 
     const arrPapers = arrStockPapers.filter(item => item !== undefined);
 
-    console.log(arrPapers);
+    // console.log(arrPapers);
 
     const data = parseData(result, stockColors);
-    console.log(data)
+    // console.log(data)
 
     return {
         data,

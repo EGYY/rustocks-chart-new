@@ -55,9 +55,13 @@ import DownloadExelBtn from "../DownloadExelBtn/DownloadExelBtn";
 class ChartNew extends React.Component {
     constructor(props) {
         super(props);
+
         this.chartRef = React.createRef();
+        this.leftCol = React.createRef();
+
         this.state = {
             stockCodes: {},
+            widthChart: null,
             isMinMax: false,
             isEma: false,
             isSma: false,
@@ -84,6 +88,18 @@ class ChartNew extends React.Component {
         }
     }
 
+
+    componentDidMount() {
+        this.setState({
+            widthChart: this.leftCol.current.offsetWidth
+        })
+        window.addEventListener('resize', () => {
+            this.setState({
+                widthChart: this.leftCol.current.offsetWidth
+            })
+        })
+    }
+    
 
     findMinMaxValues(data) {
         let min = data[0].close;
@@ -120,7 +136,7 @@ class ChartNew extends React.Component {
         let newState = Object.assign({}, this.state, upd);
         this.setState(newState);
 
-        if (data && code === 'MinMax') {
+        if (data && code === 'MinMax' || code === 'TrendLine') {
             this.handleChangeData(data)
         }
 
@@ -288,6 +304,7 @@ class ChartNew extends React.Component {
     }
 
 
+
     render() {
         let start, end;
         const {data: initialData, type, ratio, arrPapers, ticker} = this.props;
@@ -319,16 +336,6 @@ class ChartNew extends React.Component {
 
         const dateFormat = timeFormat("%I:%M");
         const formatTimeToYMD = timeFormat("%Y-%m-%d");
-
-        const macdAppearance = {
-            stroke: {
-                macd: "#FF0000",
-                signal: "#00F300",
-            },
-            fill: {
-                divergence: "#4682B4"
-            },
-        };
 
         const tooltipContent = (ys) => {
             return ({currentItem, xAccessor}) => {
@@ -371,7 +378,7 @@ class ChartNew extends React.Component {
         const stockArr = arrPapers.filter(item => item.stock);
         const indexesArr = arrPapers.filter(item => item.index);
 
-        console.log(this.state);
+        // console.log(this.state);
         const renderChartFromType = (code) => {
             switch (typeChart) {
                 case "close-chart":
@@ -588,7 +595,7 @@ class ChartNew extends React.Component {
         stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) ||
             (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.percentData[item.stock[1]].close : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
 
-        console.log(this.state)
+        // console.log(this.state)
 
 
         let heightMainChartLines = 200;
@@ -600,14 +607,16 @@ class ChartNew extends React.Component {
         let volumeOrigin = (w, h) => [0, h - heightVolumeChart - heightRsiChart - heightMacdChart];
 
         let heightChartCanvas = heightMainChartLines + heightVolumeChart + heightRsiChart + heightMacdChart + 50;
+
         // console.log(heightChartCanvas, chartOrigin)
 
+        console.log(this.state)
 
         return (
             <div>
                 <div id="app">
                     <div className="iframe-wrap">
-                        <div className="iframe-col__left">
+                        <div className="iframe-col__left" ref={this.leftCol}>
                             <div className="iframe-filter__row">
                                 <div className="iframe-filter__wrap">
                                     <div className="iframe-filter__title">
@@ -663,10 +672,11 @@ class ChartNew extends React.Component {
                                     justifyContent: 'center',
                                     alignItems: 'center',
                                     height: heightChartCanvas
-                                }}><Spinner/></div> : (
+                                }}><Spinner/></div> : this.state.widthChart ? (
                                     <ChartCanvas ref={(chart) => {
                                         this.chartRef = chart
                                     }}
+                                                 className='chartCanvas'
                                                  margin={{left: 60, right: 60, top: 20, bottom: 24}}
                                                  onSelect={() => {
                                                      this.handleChangeData(this.chartRef.getDataInfo())
@@ -680,7 +690,7 @@ class ChartNew extends React.Component {
                                                  ratio={ratio}
                                                  panEvent={true}
                                                  height={heightChartCanvas}
-                                                 width={this.props.width > 1300 ? this.props.width - 500 : this.props.width >= 800 ? this.props.width - 400 : this.props.width < 800 ? this.props.width - 200 : this.props.width - 50}
+                                                 width={this.state.widthChart}
                                                  xExtents={[100, 200]}>
 
 
@@ -859,7 +869,7 @@ class ChartNew extends React.Component {
                                         }
                                         <CrossHairCursor/>
                                     </ChartCanvas>
-                                )
+                                ) : null
                             }
 
 
@@ -994,7 +1004,7 @@ class ChartNew extends React.Component {
                                                 />
                                             }
                                             label="Тренд"
-                                            onChange={() => this.handleChangeCheckbox('TrendLine')}
+                                            onChange={() => this.handleChangeCheckbox('TrendLine', this.chartRef.getDataInfo())}
                                         />
                                     </div>
                                 </div>
@@ -1119,22 +1129,23 @@ class ChartNew extends React.Component {
                                             label="MACD"
                                             onChange={() => this.handleChangeCheckbox('Macd')}
                                         />
+                                        <input className="iframe-input"
+                                               disabled={!isMacd}
+                                               defaultValue={fastMacdPeriod}
+                                               type='number'
+                                               onChange={(e) => this.changePeriod('fast', e)}
+                                        />
                                     </div>
-                                    <input className="iframe-input"
-                                           disabled={!isMacd}
-                                           defaultValue={fastMacdPeriod}
-                                           type='number'
-                                           onChange={(e) => this.changePeriod('fast', e)}
-                                    />
+
+                                </div>
+                                <div className="iframe-filter__flex">
+
                                     <input className="iframe-input"
                                            disabled={!isMacd}
                                            defaultValue={slowMacdPeriod}
                                            type='number'
                                            onChange={(e) => this.changePeriod('slow', e)}
                                     />
-                                </div>
-                                <div className="iframe-filter__flex">
-                                    <div className="iframe-checkboxes__signal">Signal</div>
                                     <input className="iframe-input"
                                            disabled={!isMacd}
                                            defaultValue={signalMacdPeriod}
@@ -1142,22 +1153,40 @@ class ChartNew extends React.Component {
                                            onChange={(e) => this.changePeriod('signal', e)}
                                     />
                                 </div>
+                                {/*<div className="iframe-filter__flex">*/}
+                                {/*    <div className="iframe-checkboxes__signal">Signal</div>*/}
+
+                                {/*</div>*/}
                             </div>
                             <div className="iframe-filter__block">
-                                <DownloadExelBtn data={data}/>
-                                <Button className={this.props.classes.btn}
-                                        onClick={() => this.openFullSreenApp(this.props.config.urlFullSrceenApp)}
-                                        variant="contained"
-                                        color="primary">
-                                    Развернуть график
-                                </Button>
-                                <Button className={this.props.classes.btn}
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={() => window.print()}>
-                                    Распечатать график
-                                </Button>
+                                <div className="iframe-filter__flex">
+                                    <DownloadExelBtn data={data}/>
+                                </div>
+                                <div className="iframe-filter__flex">
+                                    <span>
+                                    <Button className={this.props.classes.btn}
+                                            onClick={() => this.openFullSreenApp(this.props.config.urlFullSrceenApp)}
+                                            variant="contained"
+                                            color="primary">
+                                        Развернуть график
+                                    </Button>
+                                    </span>
+
+                                </div>
+                                <div className="iframe-filter__flex">
+                                    <span>
+                                      <Button className={this.props.classes.btn}
+                                              variant="contained"
+                                              color="primary"
+                                              onClick={() => window.print(this.chartRef)}>
+                                        Распечатать график
+                                    </Button>
+                                    </span>
+
+                                </div>
                             </div>
+
+
                         </div>
                     </div>
                 </div>
@@ -1169,7 +1198,7 @@ class ChartNew extends React.Component {
 
 
 const config = window.chartConfig;
-console.log(config)
+// console.log(config)
 
 const styles = {
     input: {
@@ -1185,6 +1214,6 @@ const styles = {
     checkedIcon: {...config.checkedIcon}
 }
 
-export default (withStyles(styles)(withDeviceRatio()(fitDimensions(ChartNew))));
+export default (withStyles(styles)(withDeviceRatio()(ChartNew)));
 
 // export default withSize({ style: { minHeight: 600 } })(withDeviceRatio()(ChartNew));

@@ -111,7 +111,7 @@ function App({config}) {
     })
     //
     // console.log(arrPapers)
-    console.log(formatedData)
+    // console.log(formatedData)
 
 
 
