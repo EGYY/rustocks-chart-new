@@ -136,13 +136,15 @@ class ChartNew extends React.Component {
             trueCountStockeCodes
         });
 
-        // if (trueCountStockeCodes <= 1) {
-        //     const activeCheckboxCode = Object.entries(this.state.stockCodes).filter(item => item[1] === true)[0][0];
-        //     console.log(activeCheckboxCode)
-        //     this.setState({
-        //         stockAnaliticsCheckboxCode: activeCheckboxCode
-        //     })
-        // }
+        if (trueCountStockeCodes === 0) {
+            this.setState({
+                isMinMax: false,
+                isTrendLine: false,
+                isEma: false,
+                isSma: false
+
+            })
+        }
 
         const mainCodeStock = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
 
@@ -308,7 +310,6 @@ class ChartNew extends React.Component {
             plotData
         } = this.state;
 
-        console.log(arrPapers);
         const numberFormat = format(".2f");
         const numberFormatMillions = format(".2s");
 

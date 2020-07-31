@@ -65,7 +65,6 @@ function App({config}) {
         );
     }
 
-
     const ticker = arrPapers.filter(item => item.stock)[0].stock[1];
 
     const formatedData = data.map(item => {

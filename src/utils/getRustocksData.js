@@ -4,59 +4,62 @@ const parseData = (data, stockColors) => {
     let parsedData = [];
 
     for (let i = 0; i < data.length; i++) {
-        const fisrtElArrClose = Object.entries(data[i].values)[0][1][3];
-        const firstElArrOpen = Object.entries(data[i].values)[0][1][0];
-        const firstElArrHigh = Object.entries(data[i].values)[0][1][1];
-        const firstElArrLow = Object.entries(data[i].values)[0][1][2];
-        for (const [key, value] of Object.entries(data[i].values)) {
+        if (Object.keys(data[i].values).length !== 0) {
+            const fisrtElArrClose = Object.entries(data[i].values)[0][1][3];
+            const firstElArrOpen = Object.entries(data[i].values)[0][1][0];
+            const firstElArrHigh = Object.entries(data[i].values)[0][1][1];
+            const firstElArrLow = Object.entries(data[i].values)[0][1][2];
+            for (const [key, value] of Object.entries(data[i].values)) {
 
-            if (data[i].code && data[i].ticker) {
-                parsedData.push({
-                    date: +key,
-                    percentData: {
+                if (data[i].code && data[i].ticker) {
+                    parsedData.push({
+                        date: +key,
+                        percentData: {
+                            [data[i].ticker]: {
+                                color: stockColors[i],
+                                open: (Math.round((+value[0] / +firstElArrOpen) * 100) - 100),
+                                high: (Math.round((+value[1] / +firstElArrHigh) * 100) - 100),
+                                low: (Math.round((+value[2] / +firstElArrLow) * 100) - 100),
+                                close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
+                            }
+                        },
                         [data[i].ticker]: {
                             color: stockColors[i],
-                            open: (Math.round((+value[0] / +firstElArrOpen) * 100) - 100),
-                            high: (Math.round((+value[1] / +firstElArrHigh) * 100) - 100),
-                            low: (Math.round((+value[2] / +firstElArrLow) * 100) - 100),
-                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
+                            open: +value[0],
+                            high: +value[1],
+                            low: +value[2],
+                            close: +value[3],
+                            volume: +value[4],
+                            volume2: +value[5]
                         }
-                    },
-                    [data[i].ticker]: {
-                        color: stockColors[i],
-                        open: +value[0],
-                        high: +value[1],
-                        low: +value[2],
-                        close: +value[3],
-                        volume: +value[4],
-                        volume2: +value[5]
-                    }
-                });
-            } else {
-                parsedData.push({
-                    date: +key,
-                    percentData: {
+                    });
+                } else {
+                    parsedData.push({
+                        date: +key,
+                        percentData: {
+                            [data[i].code]: {
+                                color: stockColors[i],
+                                open: (Math.round((+value[0] / +firstElArrOpen) * 100) - 100),
+                                high: (Math.round((+value[1] / +firstElArrHigh) * 100) - 100),
+                                low: (Math.round((+value[2] / +firstElArrLow) * 100) - 100),
+                                close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
+                            }
+                        },
                         [data[i].code]: {
                             color: stockColors[i],
-                            open: (Math.round((+value[0] / +firstElArrOpen) * 100) - 100),
-                            high: (Math.round((+value[1] / +firstElArrHigh) * 100) - 100),
-                            low: (Math.round((+value[2] / +firstElArrLow) * 100) - 100),
-                            close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
+                            open: +value[0],
+                            high: +value[1],
+                            low: +value[2],
+                            close: +value[3],
+                            volume: +value[4],
+                            volume2: +value[5]
                         }
-                    },
-                    [data[i].code]: {
-                        color: stockColors[i],
-                        open: +value[0],
-                        high: +value[1],
-                        low: +value[2],
-                        close: +value[3],
-                        volume: +value[4],
-                        volume2: +value[5]
-                    }
-                });
-            }
+                    });
+                }
 
+            }
         }
+
     }
 
     const formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
@@ -84,19 +87,30 @@ const getDataRustocks = async (timeGap, stockArr, stockColors) => {
 
     console.log(result);
 
-    const arrPapers = result.map(item => {
-        if (item.code && item.ticker) {
-            return {
-                stock: [item.code, item.ticker]
+    const arrStockPapers = result.map(item => {
+        // console.log(`Item ${item} length values ${Object.keys(item.values).length}`)
+        if (Object.keys(item.values).length !== 0){
+            if (item.code && item.ticker) {
+                return {
+                    stock: [item.code, item.ticker]
+                }
+            } else {
+                return {
+                    index: item.code
+                }
             }
-        } else {
-            return {
-                index: item.code
-            }
+        }else {
+            return
         }
+
     });
 
+    const arrPapers = arrStockPapers.filter(item => item !== undefined);
+
+    console.log(arrPapers);
+
     const data = parseData(result, stockColors);
+    console.log(data)
 
     return {
         data,
