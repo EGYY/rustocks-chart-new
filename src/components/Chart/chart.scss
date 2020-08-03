@@ -230,6 +230,16 @@ body {
   }
 
   .chartCanvas, .chartCanvas * {
+
     visibility: visible;
+  }
+
+  .chartCanvas {
+    position: absolute;
+    page-break-after: always;
+    right: 0;
+    top: 0;
+    left: 0;
+
   }
 }

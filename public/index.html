@@ -13,7 +13,53 @@
 </head>
 <body>
 <noscript>You need to enable JavaScript to run this app.</noscript>
-<div id="root"></div>
+<div class="container">
+    <h1>I am content page 1</h1>
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aliquam animi aspernatur delectus esse eum ipsam modi nesciunt perspiciatis possimus quae quasi rem repellendus saepe tempore vitae, voluptas voluptatibus? Eius, impedit.</p>
+
+</div>
+<style>
+    .container{
+        margin: 0 auto;
+        max-width: 1200px;
+        width: 100%;
+        display: flex;
+    }
+
+    #root {
+        width: 100%;
+        max-width: 760px;
+        height: 1150px;
+
+    }
+
+    .block-1 {
+        width: 20%;
+        float: left;
+        max-width: 200px;
+        height: 1150px;
+        background: #9f70fa;
+    }
+    .block-2 {
+        width: 20%;
+        float: right;
+        max-width: 200px;
+        height: 1150px;
+        background: #9f70fa;
+    }
+</style>
+<div class="container">
+    <div class="block-1"></div>
+    <div id="root"></div>
+    <div class="block-2"></div>
+</div>
+<div class="container">
+    <h1>I am content page 1</h1>
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aliquam animi aspernatur delectus esse eum ipsam modi nesciunt perspiciatis possimus quae quasi rem repellendus saepe tempore vitae, voluptas voluptatibus? Eius, impedit.</p>
+
+</div>
+
+
 
 <script>
     function tryRender() {
@@ -109,7 +155,7 @@
             btn: {
                 background: 'linear-gradient(45deg, #9f70fa 30%, #7b3ff2 90%)',
                 color: '#fff',
-                fontSize: 13,
+                fontSize: 10,
                 height: 38,
                 width: 150,
                 boxShadow: '0 3px 5px 2px rgba(0, 0, 0, .3)',

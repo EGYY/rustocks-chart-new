@@ -1,8 +1,7 @@
-import React, {Fragment} from "react";
+import React from "react";
 
 import {timeFormat} from "d3-time-format";
 import {format} from "d3-format";
-
 
 import {ChartCanvas, Chart} from "react-financial-charts";
 import {XAxis, YAxis} from "react-financial-charts/lib/axes";
@@ -15,8 +14,11 @@ import {
     AreaSeries,
     OHLCSeries
 } from "react-financial-charts/lib/series";
+
+import StraightLine from "react-financial-charts/lib/interactive/components/StraightLine";
+
 import {discontinuousTimeScaleProvider} from "react-financial-charts/lib/scale";
-import {withDeviceRatio, withSize} from "@react-financial-charts/utils";
+import {withDeviceRatio} from "@react-financial-charts/utils";
 import {last} from "react-financial-charts/lib/utils";
 import {RSITooltip, HoverTooltip} from "react-financial-charts/lib/tooltip";
 import {
@@ -25,20 +27,17 @@ import {
     MouseCoordinateX,
     MouseCoordinateY
 } from "react-financial-charts/lib/coordinates";
-// import {withDeviceRatio} from "react-financial-charts/lib/utils";
-import {ema, macd, sma, rsi} from "react-financial-charts/lib/indicator";
 
-import {TrendLine} from "react-stockcharts/lib/interactive";
-import {fitDimensions} from "react-stockcharts/lib/helper";
+import {ema, macd, sma, rsi} from "react-financial-charts/lib/indicator";
 
 import createTrend from 'trendline';
 
-import FormGroup from '@material-ui/core/FormGroup';
+
 import TextField from '@material-ui/core/TextField';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
-import {Button, Input} from '@material-ui/core';
-import InputLabel from '@material-ui/core/InputLabel';
+import {Button} from '@material-ui/core';
+
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
@@ -99,7 +98,7 @@ class ChartNew extends React.Component {
             })
         })
     }
-    
+
 
     findMinMaxValues(data) {
         let min = data[0].close;
@@ -302,7 +301,6 @@ class ChartNew extends React.Component {
     openFullSreenApp(url) {
         window.open(`${url}`, 'fullSreenStockApp', 'width=800, height=600')
     }
-
 
 
     render() {
@@ -570,20 +568,13 @@ class ChartNew extends React.Component {
         const trend = createTrend(dataForTrendLine, 'date', 'close')
 
 
-        const trendData = () => {
-            return [
-                {
+        const trendData =  {
                     start: [start, trend.calcY(xMax)],
                     end: [end, trend.calcY(xMin)],
-                    appearance: {
-                        strokeWidth: this.props.config.trendLine.width,
-                        strokeOpacity: this.props.config.trendLine.opacity,
-                        stroke: this.props.config.trendLine.color
-                    },
-                    type: "XLINE"
-                }
-            ];
-        }
+                };
+
+        console.log(trendData)
+
 
         let yExtents = [
             ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.percentData[this.state.indexChart].close : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
@@ -610,7 +601,7 @@ class ChartNew extends React.Component {
 
         // console.log(heightChartCanvas, chartOrigin)
 
-        console.log(this.state)
+        // console.log(this.state)
 
         return (
             <div>
@@ -719,12 +710,38 @@ class ChartNew extends React.Component {
                                                 ) : null
                                             }
 
+                                            {/*[*/}
+                                            {/*{*/}
+                                            {/*    start: [start, trend.calcY(xMax)],*/}
+                                            {/*    end: [end, trend.calcY(xMin)],*/}
+                                            {/*    appearance: {*/}
+                                            {/*    strokeWidth: this.props.config.trendLine.width,*/}
+                                            {/*    strokeOpacity: this.props.config.trendLine.opacity,*/}
+                                            {/*    stroke: this.props.config.trendLine.color*/}
+                                            {/*},*/}
+                                            {/*    type: "XLINE"*/}
+                                            {/*}*/}
+                                            {/*];*/}
+
+                                            {/*<StraightLine type={} />*/}
+
+
+
                                             {isTrendLine ? (
-                                                <TrendLine
-                                                    enabled={false}
-                                                    snap={false}
-                                                    trends={trendData()}
+                                                <StraightLine type='XLINE'
+                                                              strokeOpacity={this.props.config.trendLine.opacity}
+                                                              stroke={this.props.config.trendLine.color}
+                                                              strokeWidth={this.props.config.trendLine.width}
+                                                              x1Value={trendData.start[0]}
+                                                              y1Value={trendData.start[1]}
+                                                              x2Value={trendData.end[0]}
+                                                              y2Value={trendData.end[1]}
                                                 />
+                                                // <TrendLine
+                                                //     enabled={false}
+                                                //     snap={false}
+                                                //     trends={trendData}
+                                                // />
                                             ) : null
                                             }
 
