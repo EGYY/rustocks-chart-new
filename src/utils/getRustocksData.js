@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 
+
 const parseData = (data, stockColors) => {
     let parsedData = [];
     let formatData
@@ -74,14 +75,18 @@ const parseData = (data, stockColors) => {
     return formatData;
 }
 
-const getDataRustocks = async (timeGap, stockArr, stockColors) => {
+const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
 
     const proxy = 'https://cors-anywhere.herokuapp.com/';
+
+
 
     const queryArr = stockArr.map(item => {
         return {
             ...item,
-            'timegap': timeGap
+            'timegap': timeGap,
+            'from': period.from,
+            'to': period.to
         }
     })
 
@@ -92,7 +97,7 @@ const getDataRustocks = async (timeGap, stockArr, stockColors) => {
 
     const result = await response.json();
 
-    // console.log(result);
+
 
     const arrStockPapers = result.map(item => {
         // console.log(`Item ${item} length values ${Object.keys(item.values).length}`)
@@ -117,7 +122,6 @@ const getDataRustocks = async (timeGap, stockArr, stockColors) => {
     // console.log(arrPapers);
 
     const data = parseData(result, stockColors);
-    // console.log(data)
 
     return {
         data,

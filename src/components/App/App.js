@@ -17,11 +17,15 @@ function App({config}) {
     const [data, setData] = useState([]);
     const [err, setErr] = useState(false);
     const [timeGap, setTimeGap] = useState('1d');
+    const [periodTime, setPeriodTime] = useState({
+        from: '1151880000',
+        to: '1566580000'
+    });
     const [arrPapers, serArrPapers] = useState([]);
     const [isLoading, setLoading] = useState(true);
 
     useEffect(() => {
-        getDataRustocks(timeGap, config.stockData, config.stockColors).then(data => {
+        getDataRustocks(timeGap, config.stockData, config.stockColors, periodTime).then(data => {
             setLoading(false);
             if (data !== null){
                 setData(data.data);
@@ -34,10 +38,15 @@ function App({config}) {
             console.log(e);
             setErr(true)
         });
-    }, [timeGap]);
+    }, [timeGap, periodTime]);
 
     const changeDataByTimeGap = (gap) => {
         setTimeGap(gap);
+        setLoading(true);
+    }
+
+    const changeDataByPeriodTime = (period) => {
+        setPeriodTime(period);
         setLoading(true);
     }
 
@@ -123,6 +132,8 @@ function App({config}) {
                    arrPapers={arrPapers}
                    ticker={ticker}
                    config={config}
+                   periodTime={periodTime}
+                   changeDataByPeriodTime={changeDataByPeriodTime}
                    changeDataByTimeGap={changeDataByTimeGap}
             />
         </div>

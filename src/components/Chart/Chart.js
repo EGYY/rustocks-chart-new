@@ -4,6 +4,7 @@ import {timeFormat} from "d3-time-format";
 import {format} from "d3-format";
 
 import {ChartCanvas, Chart} from "react-financial-charts";
+
 import {XAxis, YAxis} from "react-financial-charts/lib/axes";
 import {
     BarSeries,
@@ -41,6 +42,7 @@ import {Button} from '@material-ui/core';
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
+import Input from "@material-ui/core/Input";
 
 import {withStyles} from '@material-ui/core/styles';
 
@@ -49,6 +51,7 @@ import clsx from "clsx";
 import './chart.scss';
 import Spinner from "../Spinner/Spinner";
 import DownloadExelBtn from "../DownloadExelBtn/DownloadExelBtn";
+import {Brush} from "react-financial-charts/lib/interactive";
 
 
 class ChartNew extends React.Component {
@@ -56,9 +59,15 @@ class ChartNew extends React.Component {
         super(props);
 
         this.chartRef = React.createRef();
+        this.brushRef = React.createRef();
         this.leftCol = React.createRef();
+        this.handleBrush = this.handleBrush.bind(this);
+        this.onKeyPress = this.onKeyPress.bind(this);
 
         this.state = {
+            testXExtents: [],
+            testYExtents: [],
+            brushEnabled: true,
             stockCodes: {},
             widthChart: null,
             isMinMax: false,
@@ -83,12 +92,27 @@ class ChartNew extends React.Component {
             volumeTypeChart: 'money',
             typeChart: 'close-chart',
             stockAnaliticsCheckboxCode: '',
-            timeGap: '1d'
+            timeGap: '1d',
+            from: '',
+            to: ''
         }
     }
 
 
     componentDidMount() {
+        document.addEventListener("keyup", this.onKeyPress);
+        const code = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
+        let oldStockCodes = this.state.stockCodes;
+        let newStockCodes = oldStockCodes;
+        newStockCodes[code] = !(oldStockCodes[code] || false)
+
+
+
+        this.setState({
+            stockCodes: newStockCodes,
+            from: this.props.periodTime.from,
+            to: this.props.periodTime.to,
+        })
         this.setState({
             widthChart: this.leftCol.current.offsetWidth
         })
@@ -97,8 +121,23 @@ class ChartNew extends React.Component {
                 widthChart: this.leftCol.current.offsetWidth
             })
         })
+
+        console.log(this.state)
     }
 
+
+    onKeyPress(e) {
+        var keyCode = e.which;
+        console.log(keyCode);
+        switch (keyCode) {
+            case 27: { // ESC
+                this.brushRef.terminate();
+                this.setState({
+                    brushEnabled: true
+                })
+            }
+        }
+    }
 
     findMinMaxValues(data) {
         let min = data[0].close;
@@ -296,6 +335,14 @@ class ChartNew extends React.Component {
         this.setState({
             indexChart
         })
+    }
+
+    handleBrush(...data) {
+        this.setState({
+            brushEnabled: false
+        });
+        console.log(data);
+
     }
 
     openFullSreenApp(url) {
@@ -573,7 +620,7 @@ class ChartNew extends React.Component {
                     end: [end, trend.calcY(xMin)],
                 };
 
-        console.log(trendData)
+        // console.log(trendData)
 
 
         let yExtents = [
@@ -682,7 +729,8 @@ class ChartNew extends React.Component {
                                                  panEvent={true}
                                                  height={heightChartCanvas}
                                                  width={this.state.widthChart}
-                                                 xExtents={[100, 200]}>
+                                                 xExtents={[100, 200]}
+                                    >
 
 
                                         <Chart id={1}
@@ -697,6 +745,7 @@ class ChartNew extends React.Component {
                                                    ticks={4}
                                                 // tickFormat={value => `${value / 100}%`}
                                             />
+                                            {/*<Brush enabled={this.state.brushEnabled} type='2D' onBrush={this.handleBrush}/>*/}
 
                                             {
                                                 renderAllStockChartsByCheckBox
@@ -928,14 +977,22 @@ class ChartNew extends React.Component {
                                                 От/До
                                             </div>
                                             <div className="iframe-filter__flex">
-                                                <form>
+                                                <form id='periodForm' onSubmit={(e) =>{
+                                                    e.preventDefault();
+                                                    this.props.changeDataByPeriodTime({
+                                                        'from' : +new Date(e.target.minDate.value),
+                                                        'to': +new Date(e.target.maxDate.value)
+                                                    })
+                                                    // console.log(+new Date(e.target.maxDate.value))
+                                                }}>
                                                     <TextField
                                                         id="min-date"
-                                                        type="date"
+                                                        type="datetime-local"
                                                         name="minDate"
-                                                        disabled={true}
-                                                        style={{marginBottom: '18px'}}
-                                                        // defaultValue={this.state.minDate}
+
+                                                        disabled={false}
+                                                        style={{marginBottom: '18px', width: '150px'}}
+                                                        defaultValue={(new Date(+this.props.periodTime.from)).toISOString().replace('Z','')}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'minDate')}
                                                         InputLabelProps={{
                                                             shrink: true,
@@ -943,16 +1000,22 @@ class ChartNew extends React.Component {
                                                     />
                                                     <TextField
                                                         id="max-date"
-                                                        type="date"
+                                                        type="datetime-local"
                                                         name="maxDate"
-                                                        disabled={true}
-                                                        // defaultValue={this.state.maxDate}
+                                                        disabled={false}
+                                                        style={{width: '150px'}}
+                                                        defaultValue={(new Date(+this.props.periodTime.to)).toISOString().replace('Z','')}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'maxDate')}
                                                         InputLabelProps={{
                                                             shrink: true,
                                                         }}
                                                     />
+                                                    <Button
+                                                        type="submit"
+                                                        form="periodForm"
+                                                        value='Применить'>Применить </Button>
                                                 </form>
+
                                             </div>
                                         </div>
                                     ) : null
