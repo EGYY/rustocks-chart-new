@@ -62,7 +62,8 @@ class ChartNew extends React.Component {
         this.brushRef = React.createRef();
         this.leftCol = React.createRef();
         this.handleBrush = this.handleBrush.bind(this);
-        this.onKeyPress = this.onKeyPress.bind(this);
+        this.handleTest = this.handleTest.bind(this);
+
 
         this.state = {
             testXExtents: [],
@@ -100,44 +101,42 @@ class ChartNew extends React.Component {
 
 
     componentDidMount() {
-        document.addEventListener("keyup", this.onKeyPress);
+        // this.chartRef.subscribe('chartEventListener', {listener: this.handleEvents})
+
         const code = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
+        // const minMaxValues = this.findMinMaxValues(this.props.data)
         let oldStockCodes = this.state.stockCodes;
         let newStockCodes = oldStockCodes;
         newStockCodes[code] = !(oldStockCodes[code] || false)
 
 
-
         this.setState({
             stockCodes: newStockCodes,
+            widthChart: this.leftCol.current.offsetWidth,
             from: this.props.periodTime.from,
             to: this.props.periodTime.to,
         })
-        this.setState({
-            widthChart: this.leftCol.current.offsetWidth
-        })
+        // this.setState({
+        //     widthChart: this.leftCol.current.offsetWidth
+        // })
         window.addEventListener('resize', () => {
             this.setState({
                 widthChart: this.leftCol.current.offsetWidth
             })
         })
-
-        console.log(this.state)
     }
 
-
-    onKeyPress(e) {
-        var keyCode = e.which;
-        console.log(keyCode);
-        switch (keyCode) {
-            case 27: { // ESC
-                this.brushRef.terminate();
-                this.setState({
-                    brushEnabled: true
-                })
-            }
+    componentDidUpdate(prevProps, prevState) {
+        if (prevState.testXExtents === this.state.testXExtents) {
+            // console.log('prev state',prevState)
+            this.setState({
+                testXExtents: [this.props.data.indexOf(last(this.props.data)), this.props.data.indexOf(this.props.data[0])],
+            })
         }
     }
+
+
+
 
     findMinMaxValues(data) {
         let min = data[0].close;
@@ -153,11 +152,11 @@ class ChartNew extends React.Component {
     }
 
     handleChangeData({plotData}) {
-        const minMaxArr = this.findMinMaxValues(plotData);
+        this.brushRef.terminate();
         this.setState({
             plotData,
-            yMax: minMaxArr[1],
-            yMin: minMaxArr[0]
+            // yMin: this.findMinMaxValues(this.props.data)[0],
+            // yMax: this.findMinMaxValues(this.props.data)[1]
         })
     }
 
@@ -337,12 +336,30 @@ class ChartNew extends React.Component {
         })
     }
 
-    handleBrush(...data) {
-        this.setState({
-            brushEnabled: false
-        });
-        console.log(data);
+    handleTest() {
+        console.log('123213')
+    }
 
+    handleBrush(brushCoords, chartInfo) {
+        console.log(brushCoords)
+        try {
+            const left = Math.min(brushCoords.end.xValue, brushCoords.start.xValue);
+            const right = Math.max(brushCoords.end.xValue, brushCoords.start.xValue);
+            const dataForMinMaxSearch = this.props.data.slice(left,right);
+            // console.log(dataForMinMaxSearch)
+            const minMaxValues = this.findMinMaxValues(dataForMinMaxSearch);
+            // console.log(minMaxValues)
+            this.setState({
+                testXExtents: [left, right],
+                yMin: minMaxValues[0],
+                yMax: minMaxValues[1]
+            })
+            console.log(brushCoords);
+            this.brushRef.terminate();
+
+        }catch (e) {
+            console.log(e)
+        }
     }
 
     openFullSreenApp(url) {
@@ -374,6 +391,8 @@ class ChartNew extends React.Component {
             timeGap,
             plotData
         } = this.state;
+
+        console.log(this.state)
 
 
         const numberFormat = format(".2f");
@@ -588,18 +607,38 @@ class ChartNew extends React.Component {
         } = xScaleProvider(calculatedData);
 
 
-        if (plotData.length === 0) {
-            start = xAccessor(last(data));
-            end = xAccessor(data[0]);
-        } else {
-            start = xAccessor(last(plotData));
-            end = xAccessor(plotData[0]);
+        // if (plotData.length === 0) {
+        //     start = xAccessor(last(data));
+        //     end = xAccessor(data[0]);
+        // } else {
+        //     start = xAccessor(last(plotData));
+        //     end = xAccessor(plotData[0]);
+        // }
+        // start = this.state.testXExtents[0];
+        // end = this.state.testXExtents[1];
+        //
+        let xExtents;
+
+        if ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1)) {
+            xExtents = this.state.testXExtents;
+            start = this.state.testXExtents[0];
+            end = this.state.testXExtents[1];
+
+        }else {
+            xExtents = [xAccessor(last(data)), xAccessor(data[0])];
+            end = xAccessor(last(data));
+            start = xAccessor(data[0]);
+
+
         }
 
-        const xExtents = [start, end];
+        // ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1)) ? xExtents = this.state.testXExtents : xExtents = [xAccessor(last(data)), xAccessor(data[0])]
+        // console.log(xExtents)
 
-        const dataTrend = initialData.slice(end, start);
+        const dataTrend = initialData.slice(start, end);
+
         const timeStamps = dataTrend.map(item => +item.date);
+        // console.log(dataTrend)
 
         const xMax = Math.max(...timeStamps);
         const xMin = Math.min(...timeStamps);
@@ -615,10 +654,10 @@ class ChartNew extends React.Component {
         const trend = createTrend(dataForTrendLine, 'date', 'close')
 
 
-        const trendData =  {
-                    start: [start, trend.calcY(xMax)],
-                    end: [end, trend.calcY(xMin)],
-                };
+        const trendData = {
+            start: [end, trend.calcY(xMax)],
+            end: [start, trend.calcY(xMin)],
+        };
 
         // console.log(trendData)
 
@@ -727,9 +766,10 @@ class ChartNew extends React.Component {
                                                  data={data}
                                                  ratio={ratio}
                                                  panEvent={true}
+                                                 pointsPerPxThreshold={12}
                                                  height={heightChartCanvas}
                                                  width={this.state.widthChart}
-                                                 xExtents={[100, 200]}
+                                                 xExtents={xExtents}
                                     >
 
 
@@ -745,7 +785,9 @@ class ChartNew extends React.Component {
                                                    ticks={4}
                                                 // tickFormat={value => `${value / 100}%`}
                                             />
-                                            {/*<Brush enabled={this.state.brushEnabled} type='2D' onBrush={this.handleBrush}/>*/}
+                                            <Brush ref={(brush) => {
+                                                this.brushRef = brush
+                                            }} enabled={this.state.brushEnabled} type='1D' onBrush={this.handleBrush}/>
 
                                             {
                                                 renderAllStockChartsByCheckBox
@@ -773,7 +815,6 @@ class ChartNew extends React.Component {
                                             {/*];*/}
 
                                             {/*<StraightLine type={} />*/}
-
 
 
                                             {isTrendLine ? (
@@ -977,10 +1018,10 @@ class ChartNew extends React.Component {
                                                 От/До
                                             </div>
                                             <div className="iframe-filter__flex">
-                                                <form id='periodForm' onSubmit={(e) =>{
+                                                <form id='periodForm' onSubmit={(e) => {
                                                     e.preventDefault();
                                                     this.props.changeDataByPeriodTime({
-                                                        'from' : +new Date(e.target.minDate.value),
+                                                        'from': +new Date(e.target.minDate.value),
                                                         'to': +new Date(e.target.maxDate.value)
                                                     })
                                                     // console.log(+new Date(e.target.maxDate.value))
@@ -992,7 +1033,7 @@ class ChartNew extends React.Component {
 
                                                         disabled={false}
                                                         style={{marginBottom: '18px', width: '150px'}}
-                                                        defaultValue={(new Date(+this.props.periodTime.from)).toISOString().replace('Z','')}
+                                                        // defaultValue={(new Date(+this.props.periodTime.from)).toISOString().replace('Z','')}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'minDate')}
                                                         InputLabelProps={{
                                                             shrink: true,
@@ -1004,7 +1045,7 @@ class ChartNew extends React.Component {
                                                         name="maxDate"
                                                         disabled={false}
                                                         style={{width: '150px'}}
-                                                        defaultValue={(new Date(+this.props.periodTime.to)).toISOString().replace('Z','')}
+                                                        // defaultValue={(new Date(+this.props.periodTime.to)).toISOString().replace('Z','')}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'maxDate')}
                                                         InputLabelProps={{
                                                             shrink: true,

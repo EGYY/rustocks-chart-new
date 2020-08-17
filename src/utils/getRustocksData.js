@@ -3,6 +3,14 @@ import * as _ from 'lodash';
 
 const parseData = (data, stockColors) => {
     let parsedData = [];
+    const defaultValue = {
+        open: 0,
+        high: 0,
+        low: 0,
+        close: 0,
+        volume: 0,
+        volume2: 0
+    };
     let formatData
 
     for (let i = 0; i < data.length; i++) {
@@ -96,7 +104,7 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
     });
 
     const result = await response.json();
-
+    console.log(result)
 
 
     const arrStockPapers = result.map(item => {
@@ -122,6 +130,8 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
     // console.log(arrPapers);
 
     const data = parseData(result, stockColors);
+
+    console.log(data)
 
     return {
         data,
