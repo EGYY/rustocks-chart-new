@@ -6,6 +6,7 @@ import {format} from "d3-format";
 import {ChartCanvas, Chart} from "react-financial-charts";
 
 import {XAxis, YAxis} from "react-financial-charts/lib/axes";
+import {Label} from "react-financial-charts/lib/annotation";
 import {
     BarSeries,
     LineSeries,
@@ -29,7 +30,7 @@ import {
     MouseCoordinateY
 } from "react-financial-charts/lib/coordinates";
 
-import {ema, macd, sma, rsi} from "react-financial-charts/lib/indicator";
+import {ema, macd, sma, rsi, compare} from "react-financial-charts/lib/indicator";
 
 import createTrend from 'trendline';
 
@@ -87,7 +88,7 @@ class ChartNew extends React.Component {
             slowMacdPeriod: 26,
             fastMacdPeriod: 12,
             signalMacdPeriod: 9,
-            trueCountStockeCodes: 0,
+            trueCountStockeCodes: 1,
             plotData: [],
             yMax: null,
             yMin: null,
@@ -132,13 +133,18 @@ class ChartNew extends React.Component {
 
     componentDidUpdate(prevProps, prevState, snapshot) {
 
-
-        if (this.state.testXExtents === prevState.testXExtents && this.state.rsiPeriod === prevState.rsiPeriod) {
-            console.log('сбросить график')
-            this.setState({
-                testXExtents: [this.props.data.indexOf(last(this.props.data)), this.props.data.indexOf(this.props.data[0])],
-            })
-        }
+        // const testXExtents = this.state.testXExtents === prevState.testXExtents;
+        //
+        // console.log(this.state === prevState)
+        //
+        //
+        // const rsiPeriod = this.state.rsiPeriod === prevState.rsiPeriod;
+        // if (testXExtents && rsiPeriod) {
+        //     console.log('сбросить график')
+        //     this.setState({
+        //         testXExtents: [this.props.data.indexOf(last(this.props.data)), this.props.data.indexOf(this.props.data[0])],
+        //     })
+        // }
 
     }
 
@@ -163,10 +169,12 @@ class ChartNew extends React.Component {
         this.state.isMacd ? this.brushRef4.terminate() : console.log();
 
 
-        this.setState({
-            plotData,
-            // yMin: this.findMinMaxValues(this.props.data)[0],
-            // yMax: this.findMinMaxValues(this.props.data)[1]
+        this.setState(prevState => {
+            console.log(prevState, this.state)
+            return {
+                testXExtents: prevState.testXExtents === this.state.testXExtents ?
+                    [this.props.data.indexOf(last(this.props.data)), this.props.data.indexOf(this.props.data[0])] : prevState.testXExtents
+            }
         })
     }
 
@@ -235,7 +243,16 @@ class ChartNew extends React.Component {
     }
 
     dataCalculator(currAnalitics) {
-        let emaCustom, smaCustom, rsiCalculator, macdCalculator
+        let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc
+        compareCalc = compare()
+            .options({
+                basePath: "close",
+                mainKeys: ["open", "high", "low", "close"],
+                compareKeys: this.props.arrCompareKeys
+            })
+            .accessor((d) => d.compare)
+            .merge((d, c) => { d.compare = c})
+
         emaCustom = ema()
             .options(
                 {
@@ -288,7 +305,8 @@ class ChartNew extends React.Component {
             emaCustom,
             smaCustom,
             rsiCalculator,
-            macdCalculator
+            macdCalculator,
+            compareCalc
         })
 
 
@@ -468,7 +486,7 @@ class ChartNew extends React.Component {
             timeGap,
             plotData
         } = this.state;
-
+        const margin = {left: 60, right: 60, top: 20, bottom: 24}
         // console.log(this.state)
 
 
@@ -530,7 +548,7 @@ class ChartNew extends React.Component {
                 case "close-chart":
                     return (
                         <LineSeries
-                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.percentData[code].close : d => d[code].close}
+                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.compare[`${code}Close`] : d => d[code].close}
                             stroke={initialData[0][code].color}/>
                     );
                     break;
@@ -638,7 +656,7 @@ class ChartNew extends React.Component {
             )
         });
 
-        let emaCustom, smaCustom, rsiCalculator, macdCalculator, calculatedData
+        let emaCustom, smaCustom, rsiCalculator, macdCalculator, calculatedData, compareCalc
 
         if (this.state.emaCustom) {
             // console.log('i am initial data',initialData.filter(item => item[this.state.currAnalitics]))
@@ -648,8 +666,18 @@ class ChartNew extends React.Component {
             smaCustom = this.state.smaCustom;
 
 
+
             calculatedData = calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))));
         } else {
+            compareCalc = compare()
+                .options({
+                    basePath: "close",
+                    mainKeys: ["open", "high", "low", "close"],
+                    compareKeys: this.props.arrCompareKeys
+                })
+                .accessor((d) => d.compare)
+                .merge((d, c) => { d.compare = c})
+
             emaCustom = ema()
                 .options({windowSize: +emaPeriod})
                 .merge(({[stockArr[0].stock[1]]: data}, c) => {
@@ -686,7 +714,6 @@ class ChartNew extends React.Component {
                     data.macd = c;
                 })
                 .accessor(({[stockArr[0].stock[1]]: data}) => data.macd);
-
 
             calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
         }
@@ -759,16 +786,17 @@ class ChartNew extends React.Component {
 
 
         let yExtents = [
-            ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.percentData[this.state.indexChart].close : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
+            ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.compare : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
             ((this.state.trueCountStockeCodes >= 1) || (this.state.indexChart !== 'off-index')) ? null : smaCustom.accessor(),
-            ((this.state.trueCountStockeCodes >= 1) || (this.state.indexChart !== 'off-index')) ? null : emaCustom.accessor()
+            ((this.state.trueCountStockeCodes >= 1) || (this.state.indexChart !== 'off-index')) ? null : emaCustom.accessor(),
+            ((this.state.trueCountStockeCodes >= 1) || (this.state.indexChart !== 'off-index')) ? null : d => d.compare
         ];
 
 
         stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) ||
-            (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.percentData[item.stock[1]].close : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
+            (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.compare[`${item.stock[1]}Close`] : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
 
-        // console.log(this.state)
+        console.log(yExtents)
 
 
         let heightMainChartLines = 200;
@@ -846,121 +874,112 @@ class ChartNew extends React.Component {
                                     alignItems: 'center',
                                     height: heightChartCanvas
                                 }}><Spinner/></div> : this.state.widthChart ? (
-                                    <ChartCanvas ref={(chart) => {
-                                        this.chartRef = chart
-                                    }}
-                                                 className='chartCanvas'
-                                                 margin={{left: 60, right: 60, top: 20, bottom: 24}}
-                                                 onSelect={() => {
-                                                     this.handleChangeData(this.chartRef.getDataInfo())
-                                                 }}
-                                                 displayXAccessor={displayXAccessor}
-                                                 xAccessor={xAccessor}
-                                                 type={type}
-                                                 seriesName='name'
-                                                 xScale={xScale}
-                                                 data={data}
-                                                 ratio={ratio}
-                                                 panEvent={true}
-                                                 pointsPerPxThreshold={12}
-                                                 height={heightChartCanvas}
-                                                 width={this.state.widthChart}
-                                                 xExtents={xExtents}
-                                    >
+                                    <>
+                                        <ChartCanvas ref={(chart) => {
+                                            this.chartRef = chart
+                                        }}
+                                                     className='chartCanvas'
+                                                     margin={margin}
+                                                     onSelect={() => {
+                                                         this.handleChangeData(this.chartRef.getDataInfo())
+                                                     }}
+                                                     postCalculator={this.state.compareCalc ? this.state.compareCalc :compareCalc}
+                                                     displayXAccessor={displayXAccessor}
+                                                     xAccessor={xAccessor}
+                                                     type={type}
+                                                     seriesName='name'
+                                                     xScale={xScale}
+                                                     data={data}
+                                                     ratio={ratio}
+                                                     panEvent={true}
+                                                     pointsPerPxThreshold={12}
+                                                     height={heightChartCanvas}
+                                                     width={this.state.widthChart}
+                                                     xExtents={xExtents}
+                                        >
 
 
-                                        <Chart id={1}
-                                               height={heightMainChartLines}
-                                            // width={this.props.width}
-                                               padding={{top: 10, bottom: 10}}
-                                               yExtents={yExtents}>
+                                            <Chart id={1}
+                                                   height={heightMainChartLines}
+                                                   padding={{top: 10, bottom: 10}}
+                                                   yExtents={yExtents}>
 
-                                            <XAxis axisAt="bottom" orient="bottom"/>
-                                            <YAxis axisAt="right"
-                                                   orient="right"
-                                                   ticks={4}
-                                                // tickFormat={value => `${value / 100}%`}
-                                            />
-
-
-                                            {
-                                                renderAllStockChartsByCheckBox
-                                            }
-
-                                            {
-                                                this.state.indexChart !== 'off-index' ? (
-                                                    <LineSeries
-                                                        yAccessor={this.state.trueCountStockeCodes >= 1 ? d => d.percentData[this.state.indexChart].close : d => d[this.state.indexChart].close}
-                                                        stroke={data[0][this.state.indexChart].color}/>
-                                                ) : null
-                                            }
-
-                                            {/*[*/}
-                                            {/*{*/}
-                                            {/*    start: [start, trend.calcY(xMax)],*/}
-                                            {/*    end: [end, trend.calcY(xMin)],*/}
-                                            {/*    appearance: {*/}
-                                            {/*    strokeWidth: this.props.config.trendLine.width,*/}
-                                            {/*    strokeOpacity: this.props.config.trendLine.opacity,*/}
-                                            {/*    stroke: this.props.config.trendLine.color*/}
-                                            {/*},*/}
-                                            {/*    type: "XLINE"*/}
-                                            {/*}*/}
-                                            {/*];*/}
-
-                                            {/*<StraightLine type={} />*/}
-
-
-                                            {isTrendLine ? (
-                                                <StraightLine type='XLINE'
-                                                              strokeOpacity={this.props.config.trendLine.opacity}
-                                                              stroke={this.props.config.trendLine.color}
-                                                              strokeWidth={this.props.config.trendLine.width}
-                                                              x1Value={trendData.start[0]}
-                                                              y1Value={trendData.start[1]}
-                                                              x2Value={trendData.end[0]}
-                                                              y2Value={trendData.end[1]}
+                                                <XAxis axisAt="bottom" orient="bottom"/>
+                                                <YAxis axisAt="right"
+                                                       orient="right"
+                                                       ticks={4}
+                                                       // showTicks={true}
+                                                       showGridLines={true}
+                                                    // tickFormat={value => `${value / 100}%`}
                                                 />
-                                                // <TrendLine
-                                                //     enabled={false}
-                                                //     snap={false}
-                                                //     trends={trendData}
-                                                // />
-                                            ) : null
-                                            }
+                                                <Label text={this.props.config.chartCaption}
+                                                       fontSize={40}
+                                                       fontWeight="bold"
+                                                       fill="#DCDCDC"
+                                                       opacity={0.6}
 
-                                            {isTotalIncome ?
-                                                <AreaSeries
-                                                    fill={this.props.config.totalIncome.fillAreaColor}
-                                                    opacity={this.props.config.totalIncome.opacityArea}
-                                                    stroke={this.props.config.totalIncome.lineColor}
-                                                    strokeWidth={this.props.config.totalIncome.lineWidth}
-                                                    strokeOpacity={this.props.config.totalIncome.opcityLine}
-                                                    yAccessor={this.state.trueCountStockeCodes > 1 ?
-                                                        d => d.percentData[stockArr[0].stock[1]].close :
-                                                        d => d[stockArr[0].stock[1]].close}/> : null}
+                                                       x={(this.state.widthChart - margin.left - margin.right) / 2}
+                                                       y={(heightMainChartLines - margin.top - margin.bottom) / 2}/>
 
-                                            {isEma ?
-                                                <LineSeries yAccessor={emaCustom.accessor()}
-                                                            stroke={this.props.config.ema.color}/> : null}
-                                            {isSma ?
-                                                <LineSeries yAccessor={smaCustom.accessor()}
-                                                            stroke={this.props.config.sma.color}/> : null}
-                                            {isMinMax ? (
-                                                <React.Fragment>
-                                                    <EdgeIndicator itemType="first" orient="right" edgeAt="right"
-                                                                   yAccessor={() => yMax !== null ? yMax : null}
-                                                                   fill={this.props.config.minMaxIndicator.maxIndicatorColor}
+                                                {
+                                                    renderAllStockChartsByCheckBox
+                                                }
+
+                                                {
+                                                    this.state.indexChart !== 'off-index' ? (
+                                                        <LineSeries
+                                                            yAccessor={this.state.trueCountStockeCodes >= 1 ? d => d.compare[`${this.state.indexChart}Close`] : d => d[this.state.indexChart].close}
+                                                            stroke={data[0][this.state.indexChart].color}/>
+                                                    ) : null
+                                                }
+
+
+                                                {isTrendLine ? (
+                                                    <StraightLine type='XLINE'
+                                                                  strokeOpacity={this.props.config.trendLine.opacity}
+                                                                  stroke={this.props.config.trendLine.color}
+                                                                  strokeWidth={this.props.config.trendLine.width}
+                                                                  x1Value={trendData.start[0]}
+                                                                  y1Value={trendData.start[1]}
+                                                                  x2Value={trendData.end[0]}
+                                                                  y2Value={trendData.end[1]}
                                                     />
-                                                    <EdgeIndicator itemType="first" orient="left" edgeAt="left"
-                                                                   yAccessor={() => yMin !== null ? yMin : null}
-                                                                   fill={this.props.config.minMaxIndicator.minIndicatorColor}
-                                                    />
-                                                </React.Fragment>
-                                            ) : null}
+
+                                                ) : null
+                                                }
+
+                                                {isTotalIncome ?
+                                                    <AreaSeries
+                                                        fill={this.props.config.totalIncome.fillAreaColor}
+                                                        opacity={this.props.config.totalIncome.opacityArea}
+                                                        stroke={this.props.config.totalIncome.lineColor}
+                                                        strokeWidth={this.props.config.totalIncome.lineWidth}
+                                                        strokeOpacity={this.props.config.totalIncome.opcityLine}
+                                                        yAccessor={this.state.trueCountStockeCodes > 1 ?
+                                                            d => d.percentData[stockArr[0].stock[1]].close :
+                                                            d => d[stockArr[0].stock[1]].close}/> : null}
+
+                                                {isEma ?
+                                                    <LineSeries yAccessor={emaCustom.accessor()}
+                                                                stroke={this.props.config.ema.color}/> : null}
+                                                {isSma ?
+                                                    <LineSeries yAccessor={smaCustom.accessor()}
+                                                                stroke={this.props.config.sma.color}/> : null}
+                                                {isMinMax ? (
+                                                    <React.Fragment>
+                                                        <EdgeIndicator itemType="first" orient="right" edgeAt="right"
+                                                                       yAccessor={() => yMax !== null ? yMax : null}
+                                                                       fill={this.props.config.minMaxIndicator.maxIndicatorColor}
+                                                        />
+                                                        <EdgeIndicator itemType="first" orient="left" edgeAt="left"
+                                                                       yAccessor={() => yMin !== null ? yMin : null}
+                                                                       fill={this.props.config.minMaxIndicator.minIndicatorColor}
+                                                        />
+                                                    </React.Fragment>
+                                                ) : null}
 
 
-                                            <MouseCoordinateY displayFormat={format(".2f")}/>
+                                                <MouseCoordinateY displayFormat={format(".2f")}/>
 
 
                                                 <HoverTooltip
@@ -989,105 +1008,109 @@ class ChartNew extends React.Component {
                                                 />
 
 
-                                            <Brush ref={(brush) => {
-                                                this.brushRef1 = brush
-                                            }} enabled={this.state.brushEnabled} type='1D' onBrush={this.handleBrush}/>
-                                        </Chart>
 
-                                        {
-                                            this.state.stockCodes[stockArr[0].stock[1]] ? (
-                                                <Chart id={2}
-                                                       yExtents={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}
-                                                       height={heightVolumeChart}
-                                                       origin={volumeOrigin}
-                                                       padding={{top: 20, bottom: 10}}
-                                                >
-                                                    <XAxis axisAt="bottom" orient="bottom"/>
-                                                    <YAxis axisAt="right"
-                                                           orient="right"
-                                                           ticks={4}
-                                                           tickFormat={value => numberFormatMillions(value)}
-                                                    />
+                                                <Brush ref={(brush) => {
+                                                    this.brushRef1 = brush
+                                                }} enabled={this.state.brushEnabled} type='1D'
+                                                       onBrush={this.handleBrush}/>
+                                            </Chart>
 
-                                                    <MouseCoordinateY displayFormat={numberFormatMillions}/>
+                                            {
+                                                this.state.stockCodes[stockArr[0].stock[1]] ? (
+                                                    <Chart id={2}
+                                                           yExtents={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}
+                                                           height={heightVolumeChart}
+                                                           origin={volumeOrigin}
+                                                           padding={{top: 20, bottom: 10}}
+                                                    >
+                                                        <XAxis axisAt="bottom" orient="bottom"/>
+                                                        <YAxis axisAt="right"
+                                                               orient="right"
+                                                               ticks={4}
+                                                               showGridLines={true}
+                                                               tickFormat={value => numberFormatMillions(value)}
+                                                        />
 
-                                                    <BarSeries fill={this.props.config.volumeChart.color}
-                                                               yAccessor={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}/>
+                                                        <MouseCoordinateY displayFormat={numberFormatMillions}/>
 
-                                                    <Brush ref={(brush) => {
-                                                        this.brushRef2 = brush
-                                                    }} enabled={this.state.brushEnabled} type='1D'
-                                                           onBrush={this.handleBrush}/>
-                                                </Chart>
+                                                        <BarSeries fill={this.props.config.volumeChart.color}
+                                                                   yAccessor={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}/>
 
-                                            ) : null
-                                        }
+                                                        <Brush ref={(brush) => {
+                                                            this.brushRef2 = brush
+                                                        }} enabled={this.state.brushEnabled} type='1D'
+                                                               onBrush={this.handleBrush}/>
+                                                    </Chart>
 
-                                        {
-                                            ((this.state.stockCodes[stockArr[0].stock[1]]) && isRsi) ? (
-                                                <Chart id={3}
-                                                       height={heightRsiChart}
-                                                       yExtents={[0, 100]}
-                                                       origin={rsiOrigin}
-                                                       padding={{top: 10, bottom: 10}}
-                                                >
-                                                    <XAxis/>
-                                                    <YAxis axisAt='right' orient='right' tickValues={[30, 50, 70]}/>
+                                                ) : null
+                                            }
 
-                                                    <RSISeries stroke={
-                                                        {
-                                                            line: this.props.config.rsiChart.lineColor,
-                                                            outsideThreshold: this.props.config.rsiChart.outSideLineColor,
-                                                            insideThreshold: this.props.config.rsiChart.insideLineColor,
-                                                            top: this.props.config.rsiChart.topVerticalLineColor,
-                                                            middle: this.props.config.rsiChart.midVerticalLineColor,
-                                                            bottom: this.props.config.rsiChart.bottomVerticalLineColor,
+                                            {
+                                                ((this.state.stockCodes[stockArr[0].stock[1]]) && isRsi) ? (
+                                                    <Chart id={3}
+                                                           height={heightRsiChart}
+                                                           yExtents={[0, 100]}
+                                                           origin={rsiOrigin}
+                                                           padding={{top: 10, bottom: 10}}
+                                                    >
+                                                        <XAxis/>
+                                                        <YAxis axisAt='right' orient='right' tickValues={[30, 50, 70]}/>
+
+                                                        <RSISeries stroke={
+                                                            {
+                                                                line: this.props.config.rsiChart.lineColor,
+                                                                outsideThreshold: this.props.config.rsiChart.outSideLineColor,
+                                                                insideThreshold: this.props.config.rsiChart.insideLineColor,
+                                                                top: this.props.config.rsiChart.topVerticalLineColor,
+                                                                middle: this.props.config.rsiChart.midVerticalLineColor,
+                                                                bottom: this.props.config.rsiChart.bottomVerticalLineColor,
+                                                            }
                                                         }
-                                                    }
-                                                               yAccessor={rsiCalculator.accessor()}/>
+                                                                   yAccessor={rsiCalculator.accessor()}/>
 
-                                                    <MouseCoordinateY displayFormat={format(".2f")}/>
-                                                    <Brush ref={(brush) => {
-                                                        this.brushRef3 = brush
-                                                    }} enabled={this.state.brushEnabled} type='1D'
-                                                           onBrush={this.handleBrush}/>
-                                                </Chart>
-                                            ) : null
-                                        }
+                                                        <MouseCoordinateY displayFormat={format(".2f")}/>
+                                                        <Brush ref={(brush) => {
+                                                            this.brushRef3 = brush
+                                                        }} enabled={this.state.brushEnabled} type='1D'
+                                                               onBrush={this.handleBrush}/>
+                                                    </Chart>
+                                                ) : null
+                                            }
 
 
-                                        {
-                                            ((this.state.stockCodes[stockArr[0].stock[1]]) && isMacd) ? (
-                                                <Chart id={4}
-                                                       height={heightMacdChart}
-                                                       yExtents={macdCalculator.accessor()}
-                                                       origin={macdOrigin}
-                                                       padding={{top: 20, bottom: 10}}>
+                                            {
+                                                ((this.state.stockCodes[stockArr[0].stock[1]]) && isMacd) ? (
+                                                    <Chart id={4}
+                                                           height={heightMacdChart}
+                                                           yExtents={macdCalculator.accessor()}
+                                                           origin={macdOrigin}
+                                                           padding={{top: 20, bottom: 10}}>
 
-                                                    <XAxis axisAt="bottom" orient="bottom"/>
-                                                    <YAxis axisAt="right" orient="right" ticks={2}/>
+                                                        <XAxis axisAt="bottom" orient="bottom"/>
+                                                        <YAxis axisAt="right" orient="right" showGridLines={true} ticks={5}/>
 
-                                                    <MACDSeries yAccessor={macdCalculator.accessor()}
-                                                                fill={{divergence: this.props.config.macdChart.histogramColor}}
-                                                                stroke={
-                                                                    {
-                                                                        macd: this.props.config.macdChart.macdLineColor,
-                                                                        signal: this.props.config.macdChart.signalLineColor,
-                                                                    }
-                                                                }/>
+                                                        <MACDSeries yAccessor={macdCalculator.accessor()}
+                                                                    fill={{divergence: this.props.config.macdChart.histogramColor}}
+                                                                    stroke={
+                                                                        {
+                                                                            macd: this.props.config.macdChart.macdLineColor,
+                                                                            signal: this.props.config.macdChart.signalLineColor,
+                                                                        }
+                                                                    }/>
 
-                                                    <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
-                                                    <MouseCoordinateY displayFormat={format(".2f")}/>
-                                                    <Brush ref={(brush) => {
-                                                        this.brushRef4 = brush
-                                                    }} enabled={this.state.brushEnabled} type='1D'
-                                                           onBrush={this.handleBrush}/>
-                                                </Chart>
-                                            ) : null
-                                        }
-                                        <CrossHairCursor/>
+                                                        <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
+                                                        <MouseCoordinateY displayFormat={format(".2f")}/>
+                                                        <Brush ref={(brush) => {
+                                                            this.brushRef4 = brush
+                                                        }} enabled={this.state.brushEnabled} type='1D'
+                                                               onBrush={this.handleBrush}/>
+                                                    </Chart>
+                                                ) : null
+                                            }
+                                            <CrossHairCursor/>
 
-                                    </ChartCanvas>
+                                        </ChartCanvas>
+                                    </>
                                 ) : null
                             }
 
@@ -1194,7 +1217,9 @@ class ChartNew extends React.Component {
                                 </FormControl>
                             </div>
                             <div className="iframe-filter__wrap">
-                                <FormControl style={{width: '150px'}}>
+                                <FormControl style={{width: '150px'}}
+                                    // disabled={!(this.state.trueCountStockeCodes > 1) || false}
+                                >
                                     <Select
                                         className={this.props.classes.input}
                                         labelId="demo-simple-select-label"

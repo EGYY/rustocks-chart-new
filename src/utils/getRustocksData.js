@@ -33,6 +33,7 @@ const parseData = (data, stockColors) => {
                                 close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
                             }
                         },
+                        [`${data[i].ticker}Close`]: +value[3],
                         [data[i].ticker]: {
                             color: stockColors[i],
                             open: +value[0],
@@ -55,6 +56,7 @@ const parseData = (data, stockColors) => {
                                 close: (Math.round((+value[3] / +fisrtElArrClose) * 100) - 100),
                             }
                         },
+                        [`${data[i].code}Close`]: +value[3],
                         [data[i].code]: {
                             color: stockColors[i],
                             open: +value[0],
@@ -106,15 +108,17 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
     const result = await response.json();
     console.log(result)
 
-
+    const arrCompareKeys = [];
     const arrStockPapers = result.map(item => {
         // console.log(`Item ${item} length values ${Object.keys(item.values).length}`)
         if (Object.keys(item.values).length !== 0){
             if (item.code && item.ticker) {
+                arrCompareKeys.push(`${item.ticker}Close`)
                 return {
                     stock: [item.code, item.ticker]
                 }
             } else {
+                arrCompareKeys.push(`${item.code}Close`)
                 return {
                     index: item.code
                 }
@@ -127,15 +131,16 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
 
     const arrPapers = arrStockPapers.filter(item => item !== undefined);
 
-    // console.log(arrPapers);
+
 
     const data = parseData(result, stockColors);
 
-    console.log(data)
+    console.log(arrCompareKeys)
 
     return {
         data,
-        arrPapers
+        arrPapers,
+        arrCompareKeys
     };
 }
 

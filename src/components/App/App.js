@@ -22,6 +22,7 @@ function App({config}) {
         to: '1566580000'
     });
     const [arrPapers, serArrPapers] = useState([]);
+    const [arrCompareKeys, setArrCompareKeys] = useState([]);
     const [isLoading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -30,6 +31,7 @@ function App({config}) {
             if (data !== null){
                 setData(data.data);
                 serArrPapers(data.arrPapers);
+                setArrCompareKeys(data.arrCompareKeys);
             }else {
                 setData(null)
             }
@@ -133,6 +135,7 @@ function App({config}) {
                    ticker={ticker}
                    config={config}
                    periodTime={periodTime}
+                   arrCompareKeys={arrCompareKeys}
                    changeDataByPeriodTime={changeDataByPeriodTime}
                    changeDataByTimeGap={changeDataByTimeGap}
             />
