@@ -59,10 +59,12 @@ class ChartNew extends React.Component {
         super(props);
 
         this.chartRef = React.createRef();
-        this.brushRef = React.createRef();
+        this.brushRef1 = React.createRef();
+        this.brushRef2 = React.createRef();
+        this.brushRef3 = React.createRef();
+        this.brushRef4 = React.createRef();
         this.leftCol = React.createRef();
         this.handleBrush = this.handleBrush.bind(this);
-        this.handleTest = this.handleTest.bind(this);
 
 
         this.state = {
@@ -89,6 +91,7 @@ class ChartNew extends React.Component {
             plotData: [],
             yMax: null,
             yMin: null,
+            currAnalitics: '',
             indexChart: 'off-index',
             volumeTypeChart: 'money',
             typeChart: 'close-chart',
@@ -113,6 +116,7 @@ class ChartNew extends React.Component {
         this.setState({
             stockCodes: newStockCodes,
             widthChart: this.leftCol.current.offsetWidth,
+            currAnalitics: code,
             from: this.props.periodTime.from,
             to: this.props.periodTime.to,
         })
@@ -126,16 +130,17 @@ class ChartNew extends React.Component {
         })
     }
 
-    componentDidUpdate(prevProps, prevState) {
-        if (prevState.testXExtents === this.state.testXExtents) {
-            // console.log('prev state',prevState)
+    componentDidUpdate(prevProps, prevState, snapshot) {
+
+
+        if (this.state.testXExtents === prevState.testXExtents && this.state.rsiPeriod === prevState.rsiPeriod) {
+            console.log('сбросить график')
             this.setState({
                 testXExtents: [this.props.data.indexOf(last(this.props.data)), this.props.data.indexOf(this.props.data[0])],
             })
         }
+
     }
-
-
 
 
     findMinMaxValues(data) {
@@ -152,7 +157,12 @@ class ChartNew extends React.Component {
     }
 
     handleChangeData({plotData}) {
-        this.brushRef.terminate();
+        this.brushRef1.terminate();
+        this.brushRef2.terminate();
+        this.state.isRsi ? this.brushRef3.terminate() : console.log();
+        this.state.isMacd ? this.brushRef4.terminate() : console.log();
+
+
         this.setState({
             plotData,
             // yMin: this.findMinMaxValues(this.props.data)[0],
@@ -174,7 +184,7 @@ class ChartNew extends React.Component {
         this.setState(newState);
 
         if (data && code === 'MinMax' || code === 'TrendLine') {
-            this.handleChangeData(data)
+            // this.handleChangeData(data)
         }
 
     }
@@ -222,6 +232,73 @@ class ChartNew extends React.Component {
                 isEma: false,
             });
         }
+    }
+
+    dataCalculator(currAnalitics) {
+        let emaCustom, smaCustom, rsiCalculator, macdCalculator
+        emaCustom = ema()
+            .options(
+                {
+                    windowSize: +this.state.emaPeriod,
+                    sourcePath: [currAnalitics, 'close']
+                },
+            )
+            .merge(({[currAnalitics]: data}, c) => {
+
+                {
+                    data.emaCustom = c;
+                }
+
+            })
+            .accessor(({[currAnalitics]: data}) => data.emaCustom);
+
+        smaCustom = sma()
+            .options({
+                windowSize: +this.state.smaPeriod,
+                sourcePath: [currAnalitics, 'close']
+            })
+            .merge(({[currAnalitics]: data}, c) => {
+                data.smaCustom = c
+            })
+            .accessor(({[currAnalitics]: data}) => data.smaCustom);
+
+        rsiCalculator = rsi()
+            .options({
+                windowSize: +this.state.rsiPeriod,
+                sourcePath: [currAnalitics, 'close']
+            })
+            .merge(({[currAnalitics]: data}, с) => {
+                data.rsi = с;
+            })
+            .accessor(({[currAnalitics]: data}) => data.rsi);
+
+        macdCalculator = macd()
+            .options({
+                fast: this.state.fastMacdPeriod,
+                slow: this.state.slowMacdPeriod,
+                signal: this.state.signalMacdPeriod,
+                sourcePath: [currAnalitics, 'close']
+            })
+            .merge(({[currAnalitics]: data}, c) => {
+                data.macd = c;
+            })
+            .accessor(({[currAnalitics]: data}) => data.macd);
+
+        this.setState({
+            emaCustom,
+            smaCustom,
+            rsiCalculator,
+            macdCalculator
+        })
+
+
+    }
+
+    handleChangeSelectAnalitic(e) {
+        this.setState({
+            currAnalitics: e.target.value
+        })
+        this.dataCalculator(e.target.value);
     }
 
     handleChangeSelect(e) {
@@ -336,16 +413,13 @@ class ChartNew extends React.Component {
         })
     }
 
-    handleTest() {
-        console.log('123213')
-    }
 
     handleBrush(brushCoords, chartInfo) {
-        console.log(brushCoords)
+        // console.log(brushCoords)
         try {
             const left = Math.min(brushCoords.end.xValue, brushCoords.start.xValue);
             const right = Math.max(brushCoords.end.xValue, brushCoords.start.xValue);
-            const dataForMinMaxSearch = this.props.data.slice(left,right);
+            const dataForMinMaxSearch = this.props.data.slice(left, right);
             // console.log(dataForMinMaxSearch)
             const minMaxValues = this.findMinMaxValues(dataForMinMaxSearch);
             // console.log(minMaxValues)
@@ -354,10 +428,13 @@ class ChartNew extends React.Component {
                 yMin: minMaxValues[0],
                 yMax: minMaxValues[1]
             })
-            console.log(brushCoords);
-            this.brushRef.terminate();
+            // console.log(brushCoords);
+            this.brushRef1.terminate();
+            this.brushRef2.terminate();
+            this.state.isRsi ? this.brushRef3.terminate() : console.log();
+            this.state.isMacd ? this.brushRef4.terminate() : console.log();
 
-        }catch (e) {
+        } catch (e) {
             console.log(e)
         }
     }
@@ -392,7 +469,7 @@ class ChartNew extends React.Component {
             plotData
         } = this.state;
 
-        console.log(this.state)
+        // console.log(this.state)
 
 
         const numberFormat = format(".2f");
@@ -443,6 +520,11 @@ class ChartNew extends React.Component {
         const indexesArr = arrPapers.filter(item => item.index);
 
         // console.log(this.state);
+        const renderAnaliticSelector = stockArr.map((item, i) => {
+            return <MenuItem key={i} value={item.stock[1]}>{item.stock[1]}</MenuItem>
+        })
+
+
         const renderChartFromType = (code) => {
             switch (typeChart) {
                 case "close-chart":
@@ -556,46 +638,60 @@ class ChartNew extends React.Component {
             )
         });
 
+        let emaCustom, smaCustom, rsiCalculator, macdCalculator, calculatedData
 
-        const emaCustom = ema()
-            .options({windowSize: +emaPeriod})
-            .merge(({[stockArr[0].stock[1]]: data}, c) => {
-                {
-                    data.emaCustom = c;
-                }
-
-            })
-            .accessor(({[stockArr[0].stock[1]]: data}) => data.emaCustom);
-
-        const smaCustom = sma()
-            .options({
-                windowSize: +smaPeriod,
-            })
-            .merge(({[stockArr[0].stock[1]]: data}, c) => {
-                data.smaCustom = c
-            })
-            .accessor(({[stockArr[0].stock[1]]: data}) => data.smaCustom);
-
-        const rsiCalculator = rsi()
-            .options({windowSize: +rsiPeriod})
-            .merge(({[stockArr[0].stock[1]]: data}, c) => {
-                data.rsi = c;
-            })
-            .accessor(({[stockArr[0].stock[1]]: data}) => data.rsi);
-
-        const macdCalculator = macd()
-            .options({
-                fast: fastMacdPeriod,
-                slow: slowMacdPeriod,
-                signal: signalMacdPeriod,
-            })
-            .merge(({[stockArr[0].stock[1]]: data}, c) => {
-                data.macd = c;
-            })
-            .accessor(({[stockArr[0].stock[1]]: data}) => data.macd);
+        if (this.state.emaCustom) {
+            // console.log('i am initial data',initialData.filter(item => item[this.state.currAnalitics]))
+            emaCustom = this.state.emaCustom;
+            macdCalculator = this.state.macdCalculator;
+            rsiCalculator = this.state.rsiCalculator;
+            smaCustom = this.state.smaCustom;
 
 
-        const calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
+            calculatedData = calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))));
+        } else {
+            emaCustom = ema()
+                .options({windowSize: +emaPeriod})
+                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                    {
+                        data.emaCustom = c;
+                    }
+
+                })
+                .accessor(({[stockArr[0].stock[1]]: data}) => data.emaCustom);
+
+            smaCustom = sma()
+                .options({
+                    windowSize: +smaPeriod,
+                })
+                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                    data.smaCustom = c
+                })
+                .accessor(({[stockArr[0].stock[1]]: data}) => data.smaCustom);
+
+            rsiCalculator = rsi()
+                .options({windowSize: +rsiPeriod})
+                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                    data.rsi = c;
+                })
+                .accessor(({[stockArr[0].stock[1]]: data}) => data.rsi);
+
+            macdCalculator = macd()
+                .options({
+                    fast: fastMacdPeriod,
+                    slow: slowMacdPeriod,
+                    signal: signalMacdPeriod,
+                })
+                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                    data.macd = c;
+                })
+                .accessor(({[stockArr[0].stock[1]]: data}) => data.macd);
+
+
+            calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
+        }
+
+        console.log(calculatedData)
 
         const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(d => d.date);
 
@@ -624,7 +720,7 @@ class ChartNew extends React.Component {
             start = this.state.testXExtents[0];
             end = this.state.testXExtents[1];
 
-        }else {
+        } else {
             xExtents = [xAccessor(last(data)), xAccessor(data[0])];
             end = xAccessor(last(data));
             start = xAccessor(data[0]);
@@ -785,9 +881,7 @@ class ChartNew extends React.Component {
                                                    ticks={4}
                                                 // tickFormat={value => `${value / 100}%`}
                                             />
-                                            <Brush ref={(brush) => {
-                                                this.brushRef = brush
-                                            }} enabled={this.state.brushEnabled} type='1D' onBrush={this.handleBrush}/>
+
 
                                             {
                                                 renderAllStockChartsByCheckBox
@@ -868,7 +962,7 @@ class ChartNew extends React.Component {
 
                                             <MouseCoordinateY displayFormat={format(".2f")}/>
 
-                                            {this.state.stockCodes[stockArr[0].stock[1]] ? (
+
                                                 <HoverTooltip
                                                     fill={this.props.config.hoverTooltip.backgroundColor}
                                                     bgFill={this.props.config.hoverTooltip.backgroundVerticalLine}
@@ -893,13 +987,17 @@ class ChartNew extends React.Component {
                                                     ])}
                                                     fontSize={15}
                                                 />
-                                            ) : null}
+
+
+                                            <Brush ref={(brush) => {
+                                                this.brushRef1 = brush
+                                            }} enabled={this.state.brushEnabled} type='1D' onBrush={this.handleBrush}/>
                                         </Chart>
 
                                         {
                                             this.state.stockCodes[stockArr[0].stock[1]] ? (
                                                 <Chart id={2}
-                                                       yExtents={this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}
+                                                       yExtents={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}
                                                        height={heightVolumeChart}
                                                        origin={volumeOrigin}
                                                        padding={{top: 20, bottom: 10}}
@@ -914,7 +1012,12 @@ class ChartNew extends React.Component {
                                                     <MouseCoordinateY displayFormat={numberFormatMillions}/>
 
                                                     <BarSeries fill={this.props.config.volumeChart.color}
-                                                               yAccessor={this.state.volumeTypeChart === 'money' ? d => d[stockArr[0].stock[1]].volume : d => d[stockArr[0].stock[1]].volume2}/>
+                                                               yAccessor={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}/>
+
+                                                    <Brush ref={(brush) => {
+                                                        this.brushRef2 = brush
+                                                    }} enabled={this.state.brushEnabled} type='1D'
+                                                           onBrush={this.handleBrush}/>
                                                 </Chart>
 
                                             ) : null
@@ -944,6 +1047,10 @@ class ChartNew extends React.Component {
                                                                yAccessor={rsiCalculator.accessor()}/>
 
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
+                                                    <Brush ref={(brush) => {
+                                                        this.brushRef3 = brush
+                                                    }} enabled={this.state.brushEnabled} type='1D'
+                                                           onBrush={this.handleBrush}/>
                                                 </Chart>
                                             ) : null
                                         }
@@ -971,10 +1078,15 @@ class ChartNew extends React.Component {
 
                                                     <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
                                                     <MouseCoordinateY displayFormat={format(".2f")}/>
+                                                    <Brush ref={(brush) => {
+                                                        this.brushRef4 = brush
+                                                    }} enabled={this.state.brushEnabled} type='1D'
+                                                           onBrush={this.handleBrush}/>
                                                 </Chart>
                                             ) : null
                                         }
                                         <CrossHairCursor/>
+
                                     </ChartCanvas>
                                 ) : null
                             }
@@ -1077,6 +1189,23 @@ class ChartNew extends React.Component {
                                     >
                                         <MenuItem value='money'>В валюте</MenuItem>
                                         <MenuItem value='pieces'>В штуках</MenuItem>
+
+                                    </Select>
+                                </FormControl>
+                            </div>
+                            <div className="iframe-filter__wrap">
+                                <FormControl style={{width: '150px'}}>
+                                    <Select
+                                        className={this.props.classes.input}
+                                        labelId="demo-simple-select-label"
+                                        id="demo-simple-select"
+                                        value={this.state.currAnalitics}
+                                        onChange={(e) => this.handleChangeSelectAnalitic(e)}
+                                    >
+                                        {
+                                            renderAnaliticSelector
+                                        }
+
 
                                     </Select>
                                 </FormControl>
