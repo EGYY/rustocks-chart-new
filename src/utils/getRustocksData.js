@@ -146,8 +146,8 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
     const data = parseData(result, stockColors, arrCompareKeys);
 
 
-    console.log('Result data from api',result)
-    console.log('Parsed data from api',data)
+    // console.log('Result data from api',result)
+    // console.log('Parsed data from api',data)
 
     return {
         data,

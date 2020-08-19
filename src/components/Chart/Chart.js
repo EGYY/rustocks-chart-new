@@ -70,7 +70,6 @@ class ChartNew extends React.Component {
 
         this.state = {
             testXExtents: [],
-            testYExtents: [],
             brushEnabled: true,
             stockCodes: {},
             widthChart: null,
@@ -109,7 +108,7 @@ class ChartNew extends React.Component {
         const defaultPeriod = this.getPeriodTime();
 
         const code = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
-        // const minMaxValues = this.findMinMaxValues(this.props.data)
+
         let oldStockCodes = this.state.stockCodes;
         let newStockCodes = oldStockCodes;
         newStockCodes[code] = !(oldStockCodes[code] || false)
@@ -120,11 +119,18 @@ class ChartNew extends React.Component {
             widthChart: this.leftCol.current.offsetWidth,
             currAnalitics: code,
             from: defaultPeriod.from,
-            to: defaultPeriod.to,
+            to: defaultPeriod.to
         })
-        // this.setState({
-        //     widthChart: this.leftCol.current.offsetWidth
-        // })
+
+        const minMaxVal = this.findMinMaxValues(this.props.data, code)
+
+        this.setState({
+            yMax: minMaxVal[1],
+            yMin: minMaxVal[0]
+        })
+
+        // console.log(dataForMinMaxSearch)
+
         window.addEventListener('resize', () => {
             this.setState({
                 widthChart: this.leftCol.current.offsetWidth,
@@ -133,31 +139,13 @@ class ChartNew extends React.Component {
         })
     }
 
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        console.log(this.state.from, this.state.to)
-
-        // const testXExtents = this.state.testXExtents === prevState.testXExtents;
-        //
-        // console.log(this.state === prevState)
-        //
-        //
-        // const rsiPeriod = this.state.rsiPeriod === prevState.rsiPeriod;
-        // if (testXExtents && rsiPeriod) {
-        //     console.log('сбросить график')
-        //     this.setState({
-        //         testXExtents: [this.props.data.indexOf(last(this.props.data)), this.props.data.indexOf(this.props.data[0])],
-        //     })
-        // }
-
-    }
-
 
     getPeriodTime() {
         const periodTime = this.props.periodTime;
         const from = new Date(periodTime.from);
         const to = new Date(periodTime.to);
-        const fromString = from.toISOString().slice(0,10);
-        const toString = to.toISOString().slice(0,10);
+        const fromString = from.toISOString().slice(0, 10);
+        const toString = to.toISOString().slice(0, 10);
         // const fromDateString = `${new Date(+periodTime.from).getFullYear()}-${new Date(+periodTime.from).getMonth() + 1}-${new Date(+periodTime.from).getHours()}`
         // const toDateString = `${new Date(+periodTime.to).getFullYear()}-${new Date(+periodTime.to).getMonth() + 1}-${new Date(+periodTime.to).getHours()}`
         return {
@@ -166,12 +154,13 @@ class ChartNew extends React.Component {
         }
     }
 
-    findMinMaxValues(data) {
-        let min = data[0].close;
-        let max = data[0].close;
+    findMinMaxValues(data, currAnalitics) {
+        // console.log(data)
+        let min = data[0][currAnalitics].close;
+        let max = data[0][currAnalitics].close;
 
         for (let i = 1; i < data.length; i++) {
-            let currValue = data[i].close;
+            let currValue = data[i][currAnalitics].close;
             min = (currValue < min) ? currValue : min;
             max = (currValue > max) ? currValue : max;
         }
@@ -179,18 +168,35 @@ class ChartNew extends React.Component {
         return [min, max];
     }
 
-    handleChangeData() {
+    handleChangeData({plotData}) {
         this.brushRef1.terminate();
         this.brushRef2.terminate();
-        this.state.isRsi ? this.brushRef3.terminate() : console.log();
-        this.state.isMacd ? this.brushRef4.terminate() : console.log();
 
+        if (this.state.isRsi) {
+            this.brushRef3.terminate()
+        }
+
+        if (this.state.isMacd) {
+            this.brushRef4.terminate()
+        }
 
         this.setState(prevState => {
-            console.log(prevState, this.state)
+            // console.log(prevState, this.state)
+            let testXExtents, minMaxVal;
+            if (prevState.testXExtents === this.state.testXExtents) {
+                const start = this.props.data.indexOf(this.props.data[0]);
+                const end = this.props.data.indexOf(last(this.props.data))
+                testXExtents = [start,end];
+                minMaxVal = this.findMinMaxValues(this.props.data.slice(start, end), this.state.currAnalitics)
+            }else {
+                testXExtents = prevState.testXExtents;
+                minMaxVal = [prevState.yMin, prevState.yMax];
+            }
+
             return {
-                testXExtents: prevState.testXExtents === this.state.testXExtents ?
-                    [this.props.data.indexOf(last(this.props.data)), this.props.data.indexOf(this.props.data[0])] : prevState.testXExtents
+                yMax: minMaxVal[1],
+                yMin: minMaxVal[0],
+                testXExtents: testXExtents
             }
         })
     }
@@ -207,11 +213,6 @@ class ChartNew extends React.Component {
         upd[key] = !(this.state[key] || false);
         let newState = Object.assign({}, this.state, upd);
         this.setState(newState);
-
-        if (data && code === 'MinMax' || code === 'TrendLine') {
-            // this.handleChangeData(data)
-        }
-
     }
 
     handleChangeCheckboxCode(code) {
@@ -221,38 +222,39 @@ class ChartNew extends React.Component {
         this.setState({
             stockCodes: newStockCodes
         })
-        const trueCountStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true).length
+        const trueStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true)
         // console.log(trueCountStockeCodes)
         this.setState({
-            trueCountStockeCodes
+            trueCountStockeCodes: trueStockeCodes.length
         });
 
-        if (trueCountStockeCodes === 0) {
+        if (trueStockeCodes.length === 0) {
             this.setState({
                 isMinMax: false,
                 isTrendLine: false,
+                isTotalIncome: false,
                 isEma: false,
-                isSma: false
-
-            })
-        }
-
-        const mainCodeStock = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
-
-        if (!this.state.stockCodes[mainCodeStock]) {
-            this.setState({
+                isSma: false,
                 isRsi: false,
                 isMacd: false
+
             })
         }
-        ;
+        if (trueStockeCodes.length === 1) {
+
+            this.dataCalculator(trueStockeCodes[0][0])
+            this.setState({
+                currAnalitics: trueStockeCodes[0][0]
+            })
+        }
 
 
-        if (trueCountStockeCodes > 1) {
+        if ((trueStockeCodes.length > 1)) {
             this.setState({
                 typeChart: 'close-chart',
                 isMinMax: false,
                 isTrendLine: false,
+                isTotalIncome: false,
                 isSma: false,
                 isEma: false,
             });
@@ -260,7 +262,8 @@ class ChartNew extends React.Component {
     }
 
     dataCalculator(currAnalitics = this.state.currAnalitics) {
-        let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc
+        let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc, sourcePath
+
         compareCalc = compare()
             .options({
                 basePath: "close",
@@ -268,7 +271,9 @@ class ChartNew extends React.Component {
                 compareKeys: this.props.arrCompareKeys
             })
             .accessor((d) => d.compare)
-            .merge((d, c) => { d.compare = c})
+            .merge((d, c) => {
+                d.compare = c
+            })
 
         emaCustom = ema()
             .options(
@@ -452,6 +457,12 @@ class ChartNew extends React.Component {
         this.setState({
             indexChart
         })
+
+        if (indexChart !== 'off-index') {
+            this.setState({
+                typeChart: 'close-chart'
+            })
+        }
     }
 
 
@@ -462,7 +473,7 @@ class ChartNew extends React.Component {
             const right = Math.max(brushCoords.end.xValue, brushCoords.start.xValue);
             const dataForMinMaxSearch = this.props.data.slice(left, right);
             // console.log(dataForMinMaxSearch)
-            const minMaxValues = this.findMinMaxValues(dataForMinMaxSearch);
+            const minMaxValues = this.findMinMaxValues(dataForMinMaxSearch, this.state.currAnalitics);
             // console.log(minMaxValues)
             this.setState({
                 testXExtents: [left, right],
@@ -472,8 +483,15 @@ class ChartNew extends React.Component {
             // console.log(brushCoords);
             this.brushRef1.terminate();
             this.brushRef2.terminate();
-            this.state.isRsi ? this.brushRef3.terminate() : console.log();
-            this.state.isMacd ? this.brushRef4.terminate() : console.log();
+
+            if (this.state.isRsi) {
+                this.brushRef3.terminate()
+            }
+
+            if (this.state.isRsi) {
+                this.brushRef4.terminate()
+            }
+
 
         } catch (e) {
             console.log(e)
@@ -516,33 +534,32 @@ class ChartNew extends React.Component {
         const numberFormat = format(".2f");
         const numberFormatMillions = format(".2s");
 
-        const dateFormat = timeFormat("%I:%M");
         const formatTimeToYMD = timeFormat("%Y-%m-%d");
 
         const tooltipContent = (ys) => {
             return ({currentItem, xAccessor}) => {
                 return {
-                    x: `${formatTimeToYMD(xAccessor(currentItem))} ${dateFormat(xAccessor(currentItem))}`,
+                    x: `${formatTimeToYMD(xAccessor(currentItem))} ${new Date(timeFormat(xAccessor(currentItem))).toLocaleTimeString()}`,
                     y: [
                         {
                             label: "Открытие",
-                            value: currentItem.open && numberFormat(currentItem.open)
+                            value: currentItem[this.state.currAnalitics].open && numberFormat(currentItem[this.state.currAnalitics].open)
                         },
                         {
                             label: "Максимум",
-                            value: currentItem.high && numberFormat(currentItem.high)
+                            value: currentItem[this.state.currAnalitics].high && numberFormat(currentItem[this.state.currAnalitics].high)
                         },
                         {
                             label: "Минимум",
-                            value: currentItem.low && numberFormat(currentItem.low)
+                            value: currentItem[this.state.currAnalitics].low && numberFormat(currentItem[this.state.currAnalitics].low)
                         },
                         {
                             label: "Закрытие",
-                            value: currentItem.close && numberFormat(currentItem.close)
+                            value: currentItem[this.state.currAnalitics].close && numberFormat(currentItem[this.state.currAnalitics].close)
                         },
                         {
                             label: "Объем (акции)",
-                            value: currentItem.volume2 && numberFormatMillions(currentItem.volume2)
+                            value: currentItem[this.state.currAnalitics].volume2 && numberFormatMillions(currentItem[this.state.currAnalitics].volume2)
                         }
                     ]
                         .concat(
@@ -562,7 +579,9 @@ class ChartNew extends React.Component {
 
         // console.log(this.state);
         const renderAnaliticSelector = stockArr.map((item, i) => {
-            return <MenuItem key={i} value={item.stock[1]}>{item.stock[1]}</MenuItem>
+            return <MenuItem key={i}
+                             disabled={((this.state.trueCountStockeCodes <= 1) && (this.state.currAnalitics !== item.stock[1])) || false}
+                             value={item.stock[1]}>{item.stock[1]}</MenuItem>
         })
 
 
@@ -571,7 +590,7 @@ class ChartNew extends React.Component {
                 case "close-chart":
                     return (
                         <LineSeries
-                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.compare[`${code}Close`] : d => d[code].close}
+                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d['compare'][`${code}Close`] : d => d[code].close}
                             stroke={initialData[0][code].color}/>
                     );
                     break;
@@ -625,14 +644,14 @@ class ChartNew extends React.Component {
                             stroke={this.props.config.areaChart.lineColor}
                             strokeWidth={this.props.config.areaChart.lineWidth}
                             strokeOpacity={this.props.config.areaChart.opcityLine}
-                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.percentData[code].close : d => d[code].close}
+                            yAccessor={d => d[code].close}
                         />
                     );
                     break;
                 default:
                     return (
                         <LineSeries
-                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d.percentData[code].close : d => d[code].close}
+                            yAccessor={d => d[code].close}
                             stroke={initialData[0][code].color}/>
                     );
                     break;
@@ -689,7 +708,6 @@ class ChartNew extends React.Component {
             smaCustom = this.state.smaCustom;
 
 
-
             calculatedData = calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))));
         } else {
             compareCalc = compare()
@@ -699,33 +717,35 @@ class ChartNew extends React.Component {
                     compareKeys: this.props.arrCompareKeys
                 })
                 .accessor((d) => d.compare)
-                .merge((d, c) => { d.compare = c})
+                .merge((d, c) => {
+                    d.compare = c
+                })
 
             emaCustom = ema()
                 .options({windowSize: +emaPeriod})
-                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                .merge(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}, c) => {
                     {
                         data.emaCustom = c;
                     }
 
                 })
-                .accessor(({[stockArr[0].stock[1]]: data}) => data.emaCustom);
+                .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.emaCustom);
 
             smaCustom = sma()
                 .options({
                     windowSize: +smaPeriod,
                 })
-                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                .merge(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}, c) => {
                     data.smaCustom = c
                 })
-                .accessor(({[stockArr[0].stock[1]]: data}) => data.smaCustom);
+                .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.smaCustom);
 
             rsiCalculator = rsi()
                 .options({windowSize: +rsiPeriod})
-                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                .merge(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}, c) => {
                     data.rsi = c;
                 })
-                .accessor(({[stockArr[0].stock[1]]: data}) => data.rsi);
+                .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.rsi);
 
             macdCalculator = macd()
                 .options({
@@ -733,10 +753,10 @@ class ChartNew extends React.Component {
                     slow: slowMacdPeriod,
                     signal: signalMacdPeriod,
                 })
-                .merge(({[stockArr[0].stock[1]]: data}, c) => {
+                .merge(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}, c) => {
                     data.macd = c;
                 })
-                .accessor(({[stockArr[0].stock[1]]: data}) => data.macd);
+                .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.macd);
 
             calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
         }
@@ -753,22 +773,12 @@ class ChartNew extends React.Component {
         } = xScaleProvider(calculatedData);
 
 
-        // if (plotData.length === 0) {
-        //     start = xAccessor(last(data));
-        //     end = xAccessor(data[0]);
-        // } else {
-        //     start = xAccessor(last(plotData));
-        //     end = xAccessor(plotData[0]);
-        // }
-        // start = this.state.testXExtents[0];
-        // end = this.state.testXExtents[1];
-        //
         let xExtents;
 
         if ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1)) {
             xExtents = this.state.testXExtents;
-            start = this.state.testXExtents[0];
             end = this.state.testXExtents[1];
+            start = this.state.testXExtents[0];
 
         } else {
             xExtents = [xAccessor(last(data)), xAccessor(data[0])];
@@ -778,20 +788,21 @@ class ChartNew extends React.Component {
 
         }
 
-        // ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1)) ? xExtents = this.state.testXExtents : xExtents = [xAccessor(last(data)), xAccessor(data[0])]
-        // console.log(xExtents)
 
         const dataTrend = initialData.slice(start, end);
 
         const timeStamps = dataTrend.map(item => +item.date);
-        // console.log(dataTrend)
+        // console.log('data-trend',dataTrend)
 
         const xMax = Math.max(...timeStamps);
         const xMin = Math.min(...timeStamps);
 
+        // console.log('data trend', dataTrend)
+
         const dataForTrendLine = dataTrend.map(item => {
+
             return {
-                close: item.close,
+                close: this.state.currAnalitics ? item[this.state.currAnalitics].close : item.close,
                 date: +item.date
             }
         })
@@ -805,7 +816,7 @@ class ChartNew extends React.Component {
             end: [start, trend.calcY(xMin)],
         };
 
-        // console.log(trendData)
+        // console.log('trend-data',trendData)
 
 
         let yExtents = [
@@ -817,13 +828,13 @@ class ChartNew extends React.Component {
 
 
         stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) ||
-            (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d.compare[`${item.stock[1]}Close`] : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
+            (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d['compare'][`${item.stock[1]}Close`] : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
 
-        console.log(yExtents)
+        // console.log(yExtents)
 
 
         let heightMainChartLines = 250;
-        let heightVolumeChart = 250
+        let heightVolumeChart = this.state.trueCountStockeCodes !== 0 ? 250 : 0;
         let heightRsiChart = isRsi ? 250 : 0;
         let heightMacdChart = isMacd ? 250 : 0;
         let rsiOrigin = (w, h) => [0, h - heightRsiChart - heightMacdChart]
@@ -872,7 +883,7 @@ class ChartNew extends React.Component {
                                     Цены
                                 </div>
                                 <FormControl
-                                    disabled={(this.state.trueCountStockeCodes > 1) || false}
+                                    disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) || false}
                                     style={{width: '150px'}}
                                 >
                                     <Select
@@ -906,7 +917,7 @@ class ChartNew extends React.Component {
                                                      onSelect={() => {
                                                          this.handleChangeData(this.chartRef.getDataInfo())
                                                      }}
-                                                     postCalculator={this.state.compareCalc ? this.state.compareCalc :compareCalc}
+                                                     postCalculator={this.state.compareCalc ? this.state.compareCalc : compareCalc}
                                                      displayXAccessor={displayXAccessor}
                                                      xAccessor={xAccessor}
                                                      type={type}
@@ -931,7 +942,7 @@ class ChartNew extends React.Component {
                                                 <YAxis axisAt="right"
                                                        orient="right"
                                                        ticks={4}
-                                                       // showTicks={true}
+                                                    // showTicks={true}
                                                        showGridLines={true}
                                                     // tickFormat={value => `${value / 100}%`}
                                                 />
@@ -951,7 +962,7 @@ class ChartNew extends React.Component {
                                                 {
                                                     this.state.indexChart !== 'off-index' ? (
                                                         <LineSeries
-                                                            yAccessor={this.state.trueCountStockeCodes >= 1 ? d => d.compare[`${this.state.indexChart}Close`] : d => d[this.state.indexChart].close}
+                                                            yAccessor={this.state.trueCountStockeCodes >= 1 ? d => d['compare'][`${this.state.indexChart}Close`] : d => d[this.state.indexChart].close}
                                                             stroke={data[0][this.state.indexChart].color}/>
                                                     ) : null
                                                 }
@@ -978,9 +989,7 @@ class ChartNew extends React.Component {
                                                         stroke={this.props.config.totalIncome.lineColor}
                                                         strokeWidth={this.props.config.totalIncome.lineWidth}
                                                         strokeOpacity={this.props.config.totalIncome.opcityLine}
-                                                        yAccessor={this.state.trueCountStockeCodes > 1 ?
-                                                            d => d.percentData[stockArr[0].stock[1]].close :
-                                                            d => d[stockArr[0].stock[1]].close}/> : null}
+                                                        yAccessor={d => d[this.state.currAnalitics ? this.state.currAnalitics : stockArr[0].stock[1]].close}/> : null}
 
                                                 {isEma ?
                                                     <LineSeries yAccessor={emaCustom.accessor()}
@@ -1013,6 +1022,7 @@ class ChartNew extends React.Component {
                                                     stroke={this.props.config.hoverTooltip.borderColor}
                                                     fontFill={this.props.config.hoverTooltip.fontColor}
                                                     yAccessor={emaCustom.accessor()}
+
                                                     tooltipContent={tooltipContent([
                                                         {
                                                             label: `${emaCustom.type()}(${emaCustom.options()
@@ -1031,7 +1041,6 @@ class ChartNew extends React.Component {
                                                 />
 
 
-
                                                 <Brush ref={(brush) => {
                                                     this.brushRef1 = brush
                                                 }} enabled={this.state.brushEnabled} type='1D'
@@ -1039,7 +1048,7 @@ class ChartNew extends React.Component {
                                             </Chart>
 
                                             {
-
+                                                this.state.trueCountStockeCodes !== 0 ? (
                                                     <Chart id={2}
                                                            yExtents={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}
                                                            height={heightVolumeChart}
@@ -1064,11 +1073,13 @@ class ChartNew extends React.Component {
                                                         }} enabled={this.state.brushEnabled} type='1D'
                                                                onBrush={this.handleBrush}/>
                                                     </Chart>
+                                                ) : null
+
 
                                             }
 
                                             {
-                                                ((this.state.stockCodes[stockArr[0].stock[1]]) && isRsi) ? (
+                                                (isRsi) ? (
                                                     <Chart id={3}
                                                            height={heightRsiChart}
                                                            yExtents={[0, 100]}
@@ -1101,7 +1112,7 @@ class ChartNew extends React.Component {
 
 
                                             {
-                                                ((this.state.stockCodes[stockArr[0].stock[1]]) && isMacd) ? (
+                                                (isMacd) ? (
                                                     <Chart id={4}
                                                            height={heightMacdChart}
                                                            yExtents={macdCalculator.accessor()}
@@ -1109,7 +1120,8 @@ class ChartNew extends React.Component {
                                                            padding={{top: 20, bottom: 10}}>
 
                                                         <XAxis axisAt="bottom" orient="bottom"/>
-                                                        <YAxis axisAt="right" orient="right" showGridLines={true} ticks={5}/>
+                                                        <YAxis axisAt="right" orient="right" showGridLines={true}
+                                                               ticks={5}/>
 
                                                         <MACDSeries yAccessor={macdCalculator.accessor()}
                                                                     fill={{divergence: this.props.config.macdChart.histogramColor}}
@@ -1181,8 +1193,8 @@ class ChartNew extends React.Component {
                                                         'from': +new Date(e.target.minDate.value),
                                                         'to': +new Date(e.target.maxDate.value)
                                                     })
-                                                    console.log(e.target.maxDate.value)
-                                                    console.log(e.target.minDate.value)
+                                                    // console.log(e.target.maxDate.value)
+                                                    // console.log(e.target.minDate.value)
                                                 }}>
                                                     <TextField
                                                         id="min-date"
@@ -1224,8 +1236,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__title">
                                     Объем
                                 </div>
-                                <FormControl style={{width: '150px'}}
-                                             disabled={!this.state.stockCodes[stockArr[0].stock[1]]}>
+                                <FormControl style={{width: '150px'}}>
                                     <Select
                                         className={this.props.classes.input}
                                         labelId="demo-simple-select-label"
@@ -1244,7 +1255,7 @@ class ChartNew extends React.Component {
                                     Аналитика
                                 </div>
                                 <FormControl style={{width: '150px'}}
-                                    disabled={!(this.state.trueCountStockeCodes > 1) || false}
+                                    // disabled={!(this.state.trueCountStockeCodes > 1) || false}
                                 >
                                     <Select
                                         className={this.props.classes.input}
@@ -1269,8 +1280,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') ||
-                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checkedIcon={<span
@@ -1292,8 +1302,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') ||
-                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTrendLine}
@@ -1313,8 +1322,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') ||
-                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isSma}
@@ -1340,8 +1348,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') ||
-                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isEma}
@@ -1369,8 +1376,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') ||
-                                                !this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTotalIncome}
@@ -1391,7 +1397,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(!this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                            disabled={(this.state.trueCountStockeCodes == 0) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isRsi}
@@ -1416,7 +1422,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(!this.state.stockCodes[stockArr[0].stock[1]]) || false}
+                                            disabled={(this.state.trueCountStockeCodes == 0) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isMacd}
