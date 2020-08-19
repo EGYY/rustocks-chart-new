@@ -1,18 +1,9 @@
 import * as _ from 'lodash';
 
-
-const parseData = (data, stockColors) => {
+const parseData = (data, stockColors, arrCompareKeys) => {
     let parsedData = [];
-    const defaultValue = {
-        open: 0,
-        high: 0,
-        low: 0,
-        close: 0,
-        volume: 0,
-        volume2: 0
-    };
     let formatData
-
+    arrCompareKeys = arrCompareKeys.map(item => item.replace('Close', ''))
     for (let i = 0; i < data.length; i++) {
         if (Object.keys(data[i].values).length !== 0) {
             const fisrtElArrClose = Object.entries(data[i].values)[0][1][3];
@@ -78,6 +69,25 @@ const parseData = (data, stockColors) => {
 
     if (parsedData.length !== 0) {
         formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
+        for (let i = 0; i < formatData.length; i++ ){
+            for (let j = 0; j < arrCompareKeys.length; j++) {
+               if (Object.keys(formatData[i]).indexOf(arrCompareKeys[j]) === -1){
+                   // console.log('Меня нет', arrCompareKeys[j])
+                    formatData[i][arrCompareKeys[j]] = {
+                        color: stockColors[j],
+                        // open: 0,
+                        // high: 0,
+                        // close: 0,
+                        // low: 0,
+                        // volume: 0,
+                        // volume2: 0
+
+                    }
+               }
+            }
+        }
+        // console.log(formatData)
+
     }else {
         formatData = null
     }
@@ -106,7 +116,7 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
     });
 
     const result = await response.json();
-    console.log(result)
+    // console.log(result)
 
     const arrCompareKeys = [];
     const arrStockPapers = result.map(item => {
@@ -133,9 +143,11 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
 
 
 
-    const data = parseData(result, stockColors);
+    const data = parseData(result, stockColors, arrCompareKeys);
 
-    console.log(arrCompareKeys)
+
+    console.log('Result data from api',result)
+    console.log('Parsed data from api',data)
 
     return {
         data,

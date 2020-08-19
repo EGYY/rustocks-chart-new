@@ -106,6 +106,7 @@ class ChartNew extends React.Component {
 
     componentDidMount() {
         // this.chartRef.subscribe('chartEventListener', {listener: this.handleEvents})
+        const defaultPeriod = this.getPeriodTime();
 
         const code = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
         // const minMaxValues = this.findMinMaxValues(this.props.data)
@@ -118,20 +119,22 @@ class ChartNew extends React.Component {
             stockCodes: newStockCodes,
             widthChart: this.leftCol.current.offsetWidth,
             currAnalitics: code,
-            from: this.props.periodTime.from,
-            to: this.props.periodTime.to,
+            from: defaultPeriod.from,
+            to: defaultPeriod.to,
         })
         // this.setState({
         //     widthChart: this.leftCol.current.offsetWidth
         // })
         window.addEventListener('resize', () => {
             this.setState({
-                widthChart: this.leftCol.current.offsetWidth
+                widthChart: this.leftCol.current.offsetWidth,
+
             })
         })
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
+        console.log(this.state.from, this.state.to)
 
         // const testXExtents = this.state.testXExtents === prevState.testXExtents;
         //
@@ -149,6 +152,20 @@ class ChartNew extends React.Component {
     }
 
 
+    getPeriodTime() {
+        const periodTime = this.props.periodTime;
+        const from = new Date(periodTime.from);
+        const to = new Date(periodTime.to);
+        const fromString = from.toISOString().slice(0,10);
+        const toString = to.toISOString().slice(0,10);
+        // const fromDateString = `${new Date(+periodTime.from).getFullYear()}-${new Date(+periodTime.from).getMonth() + 1}-${new Date(+periodTime.from).getHours()}`
+        // const toDateString = `${new Date(+periodTime.to).getFullYear()}-${new Date(+periodTime.to).getMonth() + 1}-${new Date(+periodTime.to).getHours()}`
+        return {
+            from: fromString,
+            to: toString
+        }
+    }
+
     findMinMaxValues(data) {
         let min = data[0].close;
         let max = data[0].close;
@@ -162,7 +179,7 @@ class ChartNew extends React.Component {
         return [min, max];
     }
 
-    handleChangeData({plotData}) {
+    handleChangeData() {
         this.brushRef1.terminate();
         this.brushRef2.terminate();
         this.state.isRsi ? this.brushRef3.terminate() : console.log();
@@ -242,7 +259,7 @@ class ChartNew extends React.Component {
         }
     }
 
-    dataCalculator(currAnalitics) {
+    dataCalculator(currAnalitics = this.state.currAnalitics) {
         let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc
         compareCalc = compare()
             .options({
@@ -389,36 +406,42 @@ class ChartNew extends React.Component {
                 this.setState({
                     emaPeriod: +period
                 });
+                this.dataCalculator()
                 break;
 
             case 'sma':
                 this.setState({
                     smaPeriod: +period
                 });
+                this.dataCalculator()
                 break;
 
             case 'rsi':
                 this.setState({
                     rsiPeriod: +period
                 });
+                this.dataCalculator()
                 break;
 
             case 'fast':
                 this.setState({
                     fastMacdPeriod: +period
                 });
+                this.dataCalculator()
                 break;
 
             case 'slow':
                 this.setState({
                     slowMacdPeriod: +period
                 });
+                this.dataCalculator()
                 break;
 
             case 'signal':
                 this.setState({
                     signalMacdPeriod: +period
                 });
+                this.dataCalculator()
                 break;
         }
 
@@ -718,7 +741,7 @@ class ChartNew extends React.Component {
             calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
         }
 
-        console.log(calculatedData)
+        // console.log(calculatedData)
 
         const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(d => d.date);
 
@@ -799,10 +822,10 @@ class ChartNew extends React.Component {
         console.log(yExtents)
 
 
-        let heightMainChartLines = 200;
-        let heightVolumeChart = (this.state.stockCodes[stockArr[0].stock[1]]) ? 200 : 0;
-        let heightRsiChart = isRsi ? 200 : 0;
-        let heightMacdChart = isMacd ? 200 : 0;
+        let heightMainChartLines = 250;
+        let heightVolumeChart = 250
+        let heightRsiChart = isRsi ? 250 : 0;
+        let heightMacdChart = isMacd ? 250 : 0;
         let rsiOrigin = (w, h) => [0, h - heightRsiChart - heightMacdChart]
         let macdOrigin = (w, h) => [0, h - heightMacdChart]
         let volumeOrigin = (w, h) => [0, h - heightVolumeChart - heightRsiChart - heightMacdChart];
@@ -1016,7 +1039,7 @@ class ChartNew extends React.Component {
                                             </Chart>
 
                                             {
-                                                this.state.stockCodes[stockArr[0].stock[1]] ? (
+
                                                     <Chart id={2}
                                                            yExtents={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}
                                                            height={heightVolumeChart}
@@ -1042,7 +1065,6 @@ class ChartNew extends React.Component {
                                                                onBrush={this.handleBrush}/>
                                                     </Chart>
 
-                                                ) : null
                                             }
 
                                             {
@@ -1159,16 +1181,17 @@ class ChartNew extends React.Component {
                                                         'from': +new Date(e.target.minDate.value),
                                                         'to': +new Date(e.target.maxDate.value)
                                                     })
-                                                    // console.log(+new Date(e.target.maxDate.value))
+                                                    console.log(e.target.maxDate.value)
+                                                    console.log(e.target.minDate.value)
                                                 }}>
                                                     <TextField
                                                         id="min-date"
-                                                        type="datetime-local"
+                                                        type="date"
                                                         name="minDate"
 
                                                         disabled={false}
-                                                        style={{marginBottom: '18px', width: '150px'}}
-                                                        // defaultValue={(new Date(+this.props.periodTime.from)).toISOString().replace('Z','')}
+                                                        style={{width: '150px'}}
+                                                        defaultValue={this.state.from}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'minDate')}
                                                         InputLabelProps={{
                                                             shrink: true,
@@ -1176,11 +1199,11 @@ class ChartNew extends React.Component {
                                                     />
                                                     <TextField
                                                         id="max-date"
-                                                        type="datetime-local"
+                                                        type="date"
                                                         name="maxDate"
                                                         disabled={false}
                                                         style={{width: '150px'}}
-                                                        // defaultValue={(new Date(+this.props.periodTime.to)).toISOString().replace('Z','')}
+                                                        defaultValue={this.state.to}
                                                         // onChange={(e) => this.handleDateRangeChange(e, 'maxDate')}
                                                         InputLabelProps={{
                                                             shrink: true,
@@ -1217,8 +1240,11 @@ class ChartNew extends React.Component {
                                 </FormControl>
                             </div>
                             <div className="iframe-filter__wrap">
+                                <div className="iframe-filter__title">
+                                    Аналитика
+                                </div>
                                 <FormControl style={{width: '150px'}}
-                                    // disabled={!(this.state.trueCountStockeCodes > 1) || false}
+                                    disabled={!(this.state.trueCountStockeCodes > 1) || false}
                                 >
                                     <Select
                                         className={this.props.classes.input}

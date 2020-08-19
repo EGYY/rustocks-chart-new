@@ -18,8 +18,8 @@ function App({config}) {
     const [err, setErr] = useState(false);
     const [timeGap, setTimeGap] = useState('1d');
     const [periodTime, setPeriodTime] = useState({
-        from: '1151880000',
-        to: '1566580000'
+        from: 1151880000,
+        to: 1566580000
     });
     const [arrPapers, serArrPapers] = useState([]);
     const [arrCompareKeys, setArrCompareKeys] = useState([]);
