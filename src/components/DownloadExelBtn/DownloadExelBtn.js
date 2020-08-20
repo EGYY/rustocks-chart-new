@@ -15,11 +15,11 @@ const styles = makeStyles({
     root: {...config.btn}
 });
 
-const DownloadExelBtn = ({data}) => {
+const DownloadExelBtn = ({data, width}) => {
     const classes = styles();
 
     return (
-        <ExcelFile element={<Button classes={{root: classes.root}} variant="contained" color="primary">Скачать в
+        <ExcelFile element={<Button classes={{root: classes.root}} style={{width: `${width - 60}px`}} variant="contained" color="primary">Скачать в
             Excel</Button>}>
             <ExcelSheet data={data} name="MOEX">
                 <ExcelColumn label="Date" value="date"/>

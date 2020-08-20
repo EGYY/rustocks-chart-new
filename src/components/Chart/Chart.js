@@ -38,7 +38,10 @@ import createTrend from 'trendline';
 import TextField from '@material-ui/core/TextField';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
-import {Button} from '@material-ui/core';
+import {Button,} from '@material-ui/core';
+import Modal from '@material-ui/core/Modal';
+import Backdrop from '@material-ui/core/Backdrop';
+import Fade from '@material-ui/core/Fade';
 
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
@@ -65,8 +68,9 @@ class ChartNew extends React.Component {
         this.brushRef3 = React.createRef();
         this.brushRef4 = React.createRef();
         this.leftCol = React.createRef();
+        this.resizeWindow = this.resizeWindow.bind(this);
         this.handleBrush = this.handleBrush.bind(this);
-
+        this.viewportHandler = this.viewportHandler.bind(this);
 
         this.state = {
             testXExtents: [],
@@ -81,6 +85,8 @@ class ChartNew extends React.Component {
             isTotalIncome: false,
             isDatePicker: false,
             isTrendLine: false,
+            analiticModal: false,
+            filtersModal: false,
             emaPeriod: 5,
             smaPeriod: 5,
             rsiPeriod: 5,
@@ -95,7 +101,6 @@ class ChartNew extends React.Component {
             indexChart: 'off-index',
             volumeTypeChart: 'money',
             typeChart: 'close-chart',
-            stockAnaliticsCheckboxCode: '',
             timeGap: '1d',
             from: '',
             to: ''
@@ -116,6 +121,7 @@ class ChartNew extends React.Component {
 
         this.setState({
             stockCodes: newStockCodes,
+            ratio: this.props.ratio,
             widthChart: this.leftCol.current.offsetWidth,
             currAnalitics: code,
             from: defaultPeriod.from,
@@ -131,11 +137,28 @@ class ChartNew extends React.Component {
 
         // console.log(dataForMinMaxSearch)
 
-        window.addEventListener('resize', () => {
-            this.setState({
-                widthChart: this.leftCol.current.offsetWidth,
+        window.addEventListener('resize', this.resizeWindow);
+        window.visualViewport.addEventListener("resize", this.viewportHandler);
 
-            })
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('resize', this.resizeWindow);
+        window.visualViewport.removeEventListener("resize", this.viewportHandler);
+    }
+
+    viewportHandler() {
+        this.setState({
+            ratio: window.devicePixelRatio
+        })
+        // console.log('viewport',window.devicePixelRatio);
+    }
+
+    resizeWindow() {
+
+        this.setState({
+            widthChart: this.leftCol.current.offsetWidth,
+
         })
     }
 
@@ -186,9 +209,9 @@ class ChartNew extends React.Component {
             if (prevState.testXExtents === this.state.testXExtents) {
                 const start = this.props.data.indexOf(this.props.data[0]);
                 const end = this.props.data.indexOf(last(this.props.data))
-                testXExtents = [start,end];
+                testXExtents = [start, end];
                 minMaxVal = this.findMinMaxValues(this.props.data.slice(start, end), this.state.currAnalitics)
-            }else {
+            } else {
                 testXExtents = prevState.testXExtents;
                 minMaxVal = [prevState.yMin, prevState.yMax];
             }
@@ -502,6 +525,36 @@ class ChartNew extends React.Component {
         window.open(`${url}`, 'fullSreenStockApp', 'width=800, height=600')
     }
 
+    handleOpenModal(type) {
+        switch (type) {
+            case 'analitics':
+                this.setState({
+                    analiticModal: true
+                });
+                break;
+            case 'filters':
+                this.setState({
+                    filtersModal: true
+                })
+                break;
+        }
+
+    }
+
+    handleCloseModal(type) {
+        switch (type) {
+            case 'analitics':
+                this.setState({
+                    analiticModal: false
+                });
+                break;
+            case 'filters':
+                this.setState({
+                    filtersModal: false
+                })
+                break;
+        }
+    }
 
     render() {
         let start, end;
@@ -840,8 +893,9 @@ class ChartNew extends React.Component {
         let rsiOrigin = (w, h) => [0, h - heightRsiChart - heightMacdChart]
         let macdOrigin = (w, h) => [0, h - heightMacdChart]
         let volumeOrigin = (w, h) => [0, h - heightVolumeChart - heightRsiChart - heightMacdChart];
+        let chartPadding = ((this.state.trueCountStockeCodes !== 0) && (this.state.widthChart > 420)) ? 150 : 50;
 
-        let heightChartCanvas = heightMainChartLines + heightVolumeChart + heightRsiChart + heightMacdChart + 50;
+        let heightChartCanvas = heightMainChartLines + heightVolumeChart + heightRsiChart + heightMacdChart + chartPadding;
 
         // console.log(heightChartCanvas, chartOrigin)
 
@@ -850,9 +904,425 @@ class ChartNew extends React.Component {
         return (
             <div>
                 <div id="app">
+                    <div className={`modal-mobile ${this.state.widthChart > 420 ? 'display-none' : 'display-block'}`}
+                         style={this.state.analiticModal === true ? {display: 'block'} : {display: 'none'}}>
+                        <div className="modal-mobile__main-title">
+                            <div>Анализ</div>
+                            <span onClick={() => this.handleCloseModal('analitics')}>&times;</span>
+                        </div>
+                        <hr style={{backgroundColor: '#BFBEBE', height: '3px', border: 'none'}}/>
+                        <div className="modal-mobile__row">
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Мин/Макс значения
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControlLabel
+                                        disabled={((this.state.trueCountStockeCodes > 1) ||
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                        control={
+                                            <Checkbox
+                                                checkedIcon={<span
+                                                    className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                icon={<span className={this.props.classes.icon}/>}
+                                                checked={isMinMax}
+                                                name="min-max"
+                                                color="primary"
+                                            />
+                                        }
+                                        label="Мин/Макс"
+                                        onChange={() => {
+                                            this.handleChangeCheckbox('MinMax', this.chartRef.getDataInfo());
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Линия тренда
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControlLabel
+                                        disabled={((this.state.trueCountStockeCodes > 1) ||
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                        control={
+                                            <Checkbox
+                                                checked={isTrendLine}
+                                                checkedIcon={<span
+                                                    className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                icon={<span className={this.props.classes.icon}/>}
+                                                name="trend-line"
+                                                color="primary"
+                                            />
+                                        }
+                                        label="Тренд"
+                                        onChange={() => this.handleChangeCheckbox('TrendLine', this.chartRef.getDataInfo())}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Скользящее среднее(SMA)
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControlLabel
+                                        disabled={((this.state.trueCountStockeCodes > 1) ||
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                        control={
+                                            <Checkbox
+                                                checked={isSma}
+                                                checkedIcon={<span
+                                                    className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                icon={<span className={this.props.classes.icon}/>}
+                                                name="SMA"
+                                                color="primary"
+                                            />
+                                        }
+                                        label="SMA"
+                                        onChange={() => this.handleChangeCheckbox('Sma')}
+                                    />
+                                    <input className="iframe-input"
+                                           disabled={!isSma}
+                                           defaultValue={smaPeriod}
+                                           type='number'
+                                           onChange={(e) => this.changePeriod('sma', e)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Скользящее среднее(EMA)
+                                </div>
+                                <div className="modal-mobile__content">
+
+                                    <FormControlLabel
+                                        disabled={((this.state.trueCountStockeCodes > 1) ||
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                        control={
+                                            <Checkbox
+                                                checked={isEma}
+                                                checkedIcon={<span
+                                                    className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                icon={<span className={this.props.classes.icon}/>}
+                                                name="EMA"
+                                                color="primary"
+                                            />
+                                        }
+                                        label="EMA"
+                                        onChange={() => {
+                                            this.handleChangeCheckbox('Ema')
+                                        }}
+                                    />
+
+                                    <input className="iframe-input"
+                                           disabled={!isEma}
+                                           defaultValue={emaPeriod}
+                                           type='number'
+                                           onChange={(e) => this.changePeriod('ema', e)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Совокупный доход
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControlLabel
+                                        disabled={((this.state.trueCountStockeCodes > 1) ||
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                        control={
+                                            <Checkbox
+                                                checked={isTotalIncome}
+                                                checkedIcon={<span
+                                                    className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                icon={<span className={this.props.classes.icon}/>}
+                                                name="total-income"
+                                                color="primary"
+                                            />
+                                        }
+                                        label="Совокупный доход"
+                                        onChange={() => this.handleChangeCheckbox('TotalIncome')}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Индекс относительной силы - RSI
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControlLabel
+                                        disabled={(this.state.trueCountStockeCodes == 0) || false}
+                                        control={
+                                            <Checkbox
+                                                checked={isRsi}
+                                                checkedIcon={<span
+                                                    className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                icon={<span className={this.props.classes.icon}/>}
+                                                name="RSI"
+                                                color="primary"
+                                            />
+                                        }
+                                        label="RSI"
+                                        onChange={() => this.handleChangeCheckbox('Rsi')}
+                                    />
+
+                                    <input className="iframe-input"
+                                           disabled={!isRsi}
+                                           defaultValue={rsiPeriod}
+                                           type='number'
+                                           onChange={(e) => this.changePeriod('rsi', e)}
+                                    />
+
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Индикатор MACD
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControlLabel
+                                        disabled={(this.state.trueCountStockeCodes == 0) || false}
+                                        control={
+                                            <Checkbox
+                                                checked={isMacd}
+                                                checkedIcon={<span
+                                                    className={clsx(this.props.classes.icon, this.props.classes.checkedIcon)}/>}
+                                                icon={<span className={this.props.classes.icon}/>}
+                                                name="MACD"
+                                                color="default"
+                                            />
+                                        }
+                                        label="MACD"
+                                        onChange={() => this.handleChangeCheckbox('Macd')}
+                                    />
+                                    <input className="iframe-input"
+                                           disabled={!isMacd}
+                                           defaultValue={fastMacdPeriod}
+                                           type='number'
+                                           onChange={(e) => this.changePeriod('fast', e)}
+                                    />
+                                    <input className="iframe-input"
+                                           disabled={!isMacd}
+                                           defaultValue={slowMacdPeriod}
+                                           type='number'
+                                           onChange={(e) => this.changePeriod('slow', e)}
+                                    />
+                                    <input className="iframe-input"
+                                           disabled={!isMacd}
+                                           defaultValue={signalMacdPeriod}
+                                           type='number'
+                                           onChange={(e) => this.changePeriod('signal', e)}
+                                    />
+                                </div>
+                            </div>
+
+
+                        </div>
+
+                    </div>
+                    <div className={`modal-mobile ${this.state.widthChart > 420 ? 'display-none' : 'display-block'}`}
+                         style={this.state.filtersModal === true ? {display: 'block'} : {display: 'none'}}>
+                        <div className="modal-mobile__main-title">
+                            <div>Фильтры</div>
+                            <span onClick={() => this.handleCloseModal('filters')}>&times;</span>
+                        </div>
+                        <hr style={{backgroundColor: '#BFBEBE', height: '3px', border: 'none'}}/>
+
+                        <div className="modal-mobile__row">
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Акции
+                                </div>
+                                <div className="modal-mobile__content flex-column">
+                                    {renderCheckboxTickers}
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Индексы
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControl style={{width: `${this.state.widthChart - 60}px`}}>
+                                        <Select
+                                            className={this.props.classes.input}
+                                            labelId="demo-simple-select-label"
+                                            id="demo-simple-select"
+                                            value={this.state.indexChart}
+                                            onChange={(e) => this.handleChangeIndexChart(e)}
+                                        >
+                                            {renderIndexes}
+                                            <MenuItem value='off-index'>Выключить</MenuItem>
+
+                                        </Select>
+                                    </FormControl>
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Тип графика
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControl
+                                        disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) || false}
+                                        style={{width: `${this.state.widthChart - 60}px`}}
+                                    >
+                                        <Select
+                                            className={this.props.classes.input}
+                                            labelId="demo-simple-select-label"
+                                            id="demo-simple-select"
+                                            value={typeChart}
+                                            onChange={(e) => this.handleChangeSelect(e)}
+                                        >
+                                            <MenuItem value='close-chart'>Закрытия</MenuItem>
+                                            <MenuItem value='candle-chart'>Свечи</MenuItem>
+                                            <MenuItem value='ohl-chart'>OHLC</MenuItem>
+                                            <MenuItem value='area-chart'>Горки</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Объем
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControl style={{width: `${this.state.widthChart - 60}px`}}>
+                                        <Select
+                                            className={this.props.classes.input}
+                                            labelId="demo-simple-select-label"
+                                            id="demo-simple-select"
+                                            value={this.state.volumeTypeChart}
+                                            onChange={(e) => this.handleChangeSelect(e)}
+                                        >
+                                            <MenuItem value='money'>В валюте</MenuItem>
+                                            <MenuItem value='pieces'>В штуках</MenuItem>
+
+                                        </Select>
+                                    </FormControl>
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title"
+                                     onClick={(e) => {
+                                         e.preventDefault();
+                                         this.toggleDatePicker();
+                                     }
+                                     }
+                                >
+                                    Период <a href="#" className="iframe-filter__togler">
+                                    {isDatePicker ? <span> -</span> : <span> +</span>}
+                                </a>
+                                </div>
+                                <div className="modal-mobile__content">
+
+                                    <FormControl style={{width: `${this.state.widthChart - 60}px`}}>
+                                        <Select
+                                            className={this.props.classes.input}
+                                            labelId="demo-simple-select-label"
+                                            id="range"
+                                            value={timeGap}
+                                            onChange={(e) => this.handleChangeSelect(e)}
+                                        >
+                                            <MenuItem value='5m'>5 мин.</MenuItem>
+                                            <MenuItem value='1d'>1 день</MenuItem>
+                                            <MenuItem value='1month'>1 месяц</MenuItem>
+                                        </Select>
+                                    </FormControl>
+
+                                    {
+                                        isDatePicker ? (
+                                            <form id='periodForm'
+                                                  className='flex-column'
+                                                  onSubmit={(e) => {
+                                                      e.preventDefault();
+                                                      this.props.changeDataByPeriodTime({
+                                                          'from': +new Date(e.target.minDate.value),
+                                                          'to': +new Date(e.target.maxDate.value)
+                                                      })
+                                                  }}>
+                                                <TextField
+                                                    id="min-date"
+                                                    type="date"
+                                                    name="minDate"
+                                                    disabled={false}
+                                                    style={{width: `${this.state.widthChart - 60}px`}}
+                                                    defaultValue={this.state.from}
+                                                    InputLabelProps={{
+                                                        shrink: true,
+                                                    }}
+                                                />
+                                                <TextField
+                                                    id="max-date"
+                                                    type="date"
+                                                    name="maxDate"
+                                                    disabled={false}
+                                                    style={{width: `${this.state.widthChart - 60}px`}}
+                                                    defaultValue={this.state.to}
+                                                    InputLabelProps={{
+                                                        shrink: true,
+                                                    }}
+                                                />
+                                                <Button
+                                                    type="submit"
+                                                    form="periodForm"
+                                                    value='Применить'>Применить </Button>
+                                            </form>
+                                        ) : null
+                                    }
+
+
+                                </div>
+                            </div>
+
+                            <div className="modal-mobile__block ">
+                                <div className="modal-mobile__content flex-column">
+                                    <DownloadExelBtn  data={data} width={this.state.widthChart}/>
+                                    <span>
+                                        <Button className={this.props.classes.btn}
+                                                style={{width: `${this.state.widthChart - 60}px`}}
+                                                onClick={() => this.openFullSreenApp(this.props.config.urlFullSrceenApp)}
+                                                variant="contained"
+                                                color="primary">
+                                            Развернуть график
+                                        </Button>
+                                    </span>
+
+                                    <span>
+                                        <Button className={this.props.classes.btn}
+                                                style={{width: `${this.state.widthChart - 60}px`}}
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={() => window.print(this.chartRef)}>
+                                            Распечатать график
+                                        </Button>
+                                    </span>
+
+                                </div>
+                            </div>
+
+
+                        </div>
+
+                    </div>
+                    <div
+                        className={`mobile-navigation ${this.state.widthChart > 420 ? 'display-none' : 'display-block'}`}>
+                        <div className="mobile-navigation__btn">
+                            <button type="button" onClick={() => this.handleOpenModal('analitics')}>
+                                Анализ
+                            </button>
+                        </div>
+                        <div className="mobile-navigation__btn">
+                            <button type="button" onClick={() => this.handleOpenModal('filters')}>
+                                Фильтры
+                            </button>
+                        </div>
+                    </div>
+
+
                     <div className="iframe-wrap">
                         <div className="iframe-col__left" ref={this.leftCol}>
-                            <div className="iframe-filter__row">
+                            <div
+                                className={`iframe-filter__row ${this.state.widthChart < 420 ? 'display-none' : 'display-block'}`}>
                                 <div className="iframe-filter__wrap">
                                     <div className="iframe-filter__title">
                                         Акции
@@ -878,7 +1348,8 @@ class ChartNew extends React.Component {
                                     </FormControl>
                                 </div>
                             </div>
-                            <div className="iframe-filter__row">
+                            <div
+                                className={`iframe-filter__row ${this.state.widthChart < 420 ? 'display-none' : 'display-block'}`}>
                                 <div className="iframe-filter__title">
                                     Цены
                                 </div>
@@ -908,7 +1379,37 @@ class ChartNew extends React.Component {
                                     alignItems: 'center',
                                     height: heightChartCanvas
                                 }}><Spinner/></div> : this.state.widthChart ? (
-                                    <>
+                                    <div style={{position: "relative"}}>
+                                        {
+                                            ((this.state.trueCountStockeCodes !== 0) && (this.state.widthChart > 420)) ? (
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: `${heightMainChartLines + 40}px`,
+                                                    right: 0,
+                                                    zIndex: 15
+                                                }}>
+                                                    <div className="iframe-filter__wrap">
+                                                        <div className="iframe-filter__title">
+                                                            Объем
+                                                        </div>
+                                                        <FormControl style={{width: '150px'}}>
+                                                            <Select
+                                                                className={this.props.classes.input}
+                                                                labelId="demo-simple-select-label"
+                                                                id="demo-simple-select"
+                                                                value={this.state.volumeTypeChart}
+                                                                onChange={(e) => this.handleChangeSelect(e)}
+                                                            >
+                                                                <MenuItem value='money'>В валюте</MenuItem>
+                                                                <MenuItem value='pieces'>В штуках</MenuItem>
+
+                                                            </Select>
+                                                        </FormControl>
+                                                    </div>
+                                                </div>
+                                            ) : null
+                                        }
+
                                         <ChartCanvas ref={(chart) => {
                                             this.chartRef = chart
                                         }}
@@ -924,14 +1425,12 @@ class ChartNew extends React.Component {
                                                      seriesName='name'
                                                      xScale={xScale}
                                                      data={data}
-                                                     ratio={ratio}
+                                                     ratio={this.state.ratio || ratio}
                                                      panEvent={true}
-                                                     pointsPerPxThreshold={12}
                                                      height={heightChartCanvas}
                                                      width={this.state.widthChart}
                                                      xExtents={xExtents}
                                         >
-
 
                                             <Chart id={1}
                                                    height={heightMainChartLines}
@@ -939,8 +1438,8 @@ class ChartNew extends React.Component {
                                                    yExtents={yExtents}>
 
                                                 <XAxis axisAt="bottom" orient="bottom"/>
-                                                <YAxis axisAt="right"
-                                                       orient="right"
+                                                <YAxis axisAt="left"
+                                                       orient="left"
                                                        ticks={4}
                                                     // showTicks={true}
                                                        showGridLines={true}
@@ -1043,7 +1542,8 @@ class ChartNew extends React.Component {
 
                                                 <Brush ref={(brush) => {
                                                     this.brushRef1 = brush
-                                                }} enabled={this.state.brushEnabled} type='1D'
+                                                }}
+                                                       enabled={this.state.brushEnabled} type='1D'
                                                        onBrush={this.handleBrush}/>
                                             </Chart>
 
@@ -1056,8 +1556,8 @@ class ChartNew extends React.Component {
                                                            padding={{top: 20, bottom: 10}}
                                                     >
                                                         <XAxis axisAt="bottom" orient="bottom"/>
-                                                        <YAxis axisAt="right"
-                                                               orient="right"
+                                                        <YAxis axisAt="left"
+                                                               orient="left"
                                                                ticks={4}
                                                                showGridLines={true}
                                                                tickFormat={value => numberFormatMillions(value)}
@@ -1087,7 +1587,7 @@ class ChartNew extends React.Component {
                                                            padding={{top: 10, bottom: 10}}
                                                     >
                                                         <XAxis/>
-                                                        <YAxis axisAt='right' orient='right' tickValues={[30, 50, 70]}/>
+                                                        <YAxis axisAt='left' orient='left' tickValues={[30, 50, 70]}/>
 
                                                         <RSISeries stroke={
                                                             {
@@ -1120,7 +1620,7 @@ class ChartNew extends React.Component {
                                                            padding={{top: 20, bottom: 10}}>
 
                                                         <XAxis axisAt="bottom" orient="bottom"/>
-                                                        <YAxis axisAt="right" orient="right" showGridLines={true}
+                                                        <YAxis axisAt="left" orient="left" showGridLines={true}
                                                                ticks={5}/>
 
                                                         <MACDSeries yAccessor={macdCalculator.accessor()}
@@ -1144,13 +1644,14 @@ class ChartNew extends React.Component {
                                             <CrossHairCursor/>
 
                                         </ChartCanvas>
-                                    </>
+                                    </div>
                                 ) : null
                             }
 
 
                         </div>
-                        <div className="iframe-col__right">
+                        <div
+                            className={`iframe-col__right ${this.state.widthChart < 420 ? 'display-none' : 'display-block'}`}>
                             <div className="iframe-filter__block">
                                 <div className="iframe-filter__title"
                                      onClick={(e) => {
@@ -1232,24 +1733,7 @@ class ChartNew extends React.Component {
                                     ) : null
                                 }
                             </div>
-                            <div className="iframe-filter__wrap">
-                                <div className="iframe-filter__title">
-                                    Объем
-                                </div>
-                                <FormControl style={{width: '150px'}}>
-                                    <Select
-                                        className={this.props.classes.input}
-                                        labelId="demo-simple-select-label"
-                                        id="demo-simple-select"
-                                        value={this.state.volumeTypeChart}
-                                        onChange={(e) => this.handleChangeSelect(e)}
-                                    >
-                                        <MenuItem value='money'>В валюте</MenuItem>
-                                        <MenuItem value='pieces'>В штуках</MenuItem>
 
-                                    </Select>
-                                </FormControl>
-                            </div>
                             <div className="iframe-filter__wrap">
                                 <div className="iframe-filter__title">
                                     Аналитика
@@ -1460,10 +1944,6 @@ class ChartNew extends React.Component {
                                            onChange={(e) => this.changePeriod('signal', e)}
                                     />
                                 </div>
-                                {/*<div className="iframe-filter__flex">*/}
-                                {/*    <div className="iframe-checkboxes__signal">Signal</div>*/}
-
-                                {/*</div>*/}
                             </div>
                             <div className="iframe-filter__block">
                                 <div className="iframe-filter__flex">
@@ -1508,6 +1988,12 @@ const config = window.chartConfig;
 // console.log(config)
 
 const styles = {
+    modal: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+
     input: {
         '&:focus': {
             borderBottom: config.select.focusBottomLine
