@@ -39,9 +39,9 @@ import TextField from '@material-ui/core/TextField';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 import {Button,} from '@material-ui/core';
-import Modal from '@material-ui/core/Modal';
-import Backdrop from '@material-ui/core/Backdrop';
-import Fade from '@material-ui/core/Fade';
+
+import PrintIcon from '@material-ui/icons/Print';
+import FullscreenExitIcon from '@material-ui/icons/FullscreenExit';
 
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
@@ -87,6 +87,8 @@ class ChartNew extends React.Component {
             isTrendLine: false,
             analiticModal: false,
             filtersModal: false,
+            supportsTouch: false,
+            mobileMinMaxVal: [],
             emaPeriod: 5,
             smaPeriod: 5,
             rsiPeriod: 5,
@@ -110,6 +112,7 @@ class ChartNew extends React.Component {
 
     componentDidMount() {
         // this.chartRef.subscribe('chartEventListener', {listener: this.handleEvents})
+        const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
         const defaultPeriod = this.getPeriodTime();
 
         const code = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
@@ -121,6 +124,7 @@ class ChartNew extends React.Component {
 
         this.setState({
             stockCodes: newStockCodes,
+            supportsTouch,
             ratio: this.props.ratio,
             widthChart: this.leftCol.current.offsetWidth,
             currAnalitics: code,
@@ -129,6 +133,7 @@ class ChartNew extends React.Component {
         })
 
         const minMaxVal = this.findMinMaxValues(this.props.data, code)
+        // console.log(minMaxVal)
 
         this.setState({
             yMax: minMaxVal[1],
@@ -192,6 +197,7 @@ class ChartNew extends React.Component {
     }
 
     handleChangeData({plotData}) {
+        console.log('plot data hanlde change',plotData)
         this.brushRef1.terminate();
         this.brushRef2.terminate();
 
@@ -201,6 +207,21 @@ class ChartNew extends React.Component {
 
         if (this.state.isMacd) {
             this.brushRef4.terminate()
+        }
+
+        if (this.state.supportsTouch) {
+            const start = this.props.data.map(item => item.date).indexOf(plotData[0].date);
+            const end = this.props.data.map(item => item.date).indexOf(last(plotData).date);
+            const mobileXExtents = [start, end];
+            const mobileMinMaxVal = this.findMinMaxValues(this.props.data.slice(start, end), this.state.currAnalitics)
+            // console.log(mobileMinMaxVal)
+            this.setState({
+                plotData,
+                mobileMinMaxVal,
+                mobileXExtents
+            })
+
+
         }
 
         this.setState(prevState => {
@@ -489,7 +510,7 @@ class ChartNew extends React.Component {
     }
 
 
-    handleBrush(brushCoords, chartInfo) {
+    handleBrush(brushCoords) {
         // console.log(brushCoords)
         try {
             const left = Math.min(brushCoords.end.xValue, brushCoords.start.xValue);
@@ -632,8 +653,10 @@ class ChartNew extends React.Component {
 
         // console.log(this.state);
         const renderAnaliticSelector = stockArr.map((item, i) => {
+            const disabled = !((this.state.stockCodes[item.stock[1]] !== undefined) && (this.state.stockCodes[item.stock[1]] !== false));
+            // console.log(disabled)
             return <MenuItem key={i}
-                             disabled={((this.state.trueCountStockeCodes <= 1) && (this.state.currAnalitics !== item.stock[1])) || false}
+                             disabled={disabled && true}
                              value={item.stock[1]}>{item.stock[1]}</MenuItem>
         })
 
@@ -652,14 +675,7 @@ class ChartNew extends React.Component {
                     return (
                         <CandlestickSeries
                             fill={(d) => d.close > d.open ? this.props.config.candleStickChart.colorHigh : this.props.config.candleStickChart.colorLow}
-                            yAccessor={d => ((this.state.trueCountStockeCodes > 1) ||
-                                (this.state.indexChart !== 'off-index')) ?
-                                ({
-                                    open: d.percentData[code].open,
-                                    high: d.percentData[code].high,
-                                    low: d.percentData[code].low,
-                                    close: d.percentData[code].close
-                                }) :
+                            yAccessor={d =>
                                 ({
                                     open: d[code].open,
                                     high: d[code].high,
@@ -673,18 +689,12 @@ class ChartNew extends React.Component {
 
                 case "ohl-chart":
                     return (
-                        <OHLCSeries yAccessor={
-                            d => ((this.state.trueCountStockeCodes > 1) ||
-                                (this.state.indexChart !== 'off-index')) ?
-                                ({
-                                    open: d.percentData[code].open,
-                                    high: d.percentData[code].high,
-                                    low: d.percentData[code].low,
-                                    close: d.percentData[code].close
-                                }) :
-                                ({open: d[code].open, high: d[code].high, low: d[code].low, close: d[code].close})
-
-                        }
+                        <OHLCSeries yAccessor={d => ({
+                            open: d[code].open,
+                            high: d[code].high,
+                            low: d[code].low,
+                            close: d[code].close
+                        })}
                                     stroke={this.props.config.ohlChart.color}/>
                     );
                     break;
@@ -828,17 +838,26 @@ class ChartNew extends React.Component {
 
         let xExtents;
 
-        if ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1)) {
-            xExtents = this.state.testXExtents;
-            end = this.state.testXExtents[1];
-            start = this.state.testXExtents[0];
 
+        if ((this.state.supportsTouch) && (this.state.plotData.length > 0)) {
+            xExtents = this.state.mobileXExtents;
+            end = this.state.mobileXExtents[1];
+            start = this.state.mobileXExtents[0];
         } else {
-            xExtents = [xAccessor(last(data)), xAccessor(data[0])];
-            end = xAccessor(last(data));
-            start = xAccessor(data[0]);
+
+            if ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1) && (this.state.mobileXExtents === undefined)) {
+
+                xExtents = this.state.testXExtents;
+                end = this.state.testXExtents[1];
+                start = this.state.testXExtents[0];
+
+            } else {
+                xExtents = [xAccessor(last(data)), xAccessor(data[0])];
+                end = xAccessor(last(data));
+                start = xAccessor(data[0]);
 
 
+            }
         }
 
 
@@ -899,7 +918,7 @@ class ChartNew extends React.Component {
 
         // console.log(heightChartCanvas, chartOrigin)
 
-        // console.log(this.state)
+        console.log(this.state)
 
         return (
             <div>
@@ -1231,7 +1250,7 @@ class ChartNew extends React.Component {
 
                                     {
                                         isDatePicker ? (
-                                            <form id='periodForm'
+                                            <form id='periodForm1'
                                                   className='flex-column'
                                                   onSubmit={(e) => {
                                                       e.preventDefault();
@@ -1264,7 +1283,7 @@ class ChartNew extends React.Component {
                                                 />
                                                 <Button
                                                     type="submit"
-                                                    form="periodForm"
+                                                    form="periodForm1"
                                                     value='Применить'>Применить </Button>
                                             </form>
                                         ) : null
@@ -1276,7 +1295,7 @@ class ChartNew extends React.Component {
 
                             <div className="modal-mobile__block ">
                                 <div className="modal-mobile__content flex-column">
-                                    <DownloadExelBtn  data={data} width={this.state.widthChart}/>
+                                    <DownloadExelBtn data={data} width={this.state.widthChart}/>
                                     <span>
                                         <Button className={this.props.classes.btn}
                                                 style={{width: `${this.state.widthChart - 60}px`}}
@@ -1424,6 +1443,7 @@ class ChartNew extends React.Component {
                                                      type={type}
                                                      seriesName='name'
                                                      xScale={xScale}
+                                                     pointsPerPxThreshold={12}
                                                      data={data}
                                                      ratio={this.state.ratio || ratio}
                                                      panEvent={true}
@@ -1499,11 +1519,11 @@ class ChartNew extends React.Component {
                                                 {isMinMax ? (
                                                     <React.Fragment>
                                                         <EdgeIndicator itemType="first" orient="right" edgeAt="right"
-                                                                       yAccessor={() => yMax !== null ? yMax : null}
+                                                                       yAccessor={() => this.state.supportsTouch ? this.state.mobileMinMaxVal[1] : yMax}
                                                                        fill={this.props.config.minMaxIndicator.maxIndicatorColor}
                                                         />
                                                         <EdgeIndicator itemType="first" orient="left" edgeAt="left"
-                                                                       yAccessor={() => yMin !== null ? yMin : null}
+                                                                       yAccessor={() => this.state.supportsTouch ? this.state.mobileMinMaxVal[0] : yMin}
                                                                        fill={this.props.config.minMaxIndicator.minIndicatorColor}
                                                         />
                                                     </React.Fragment>
@@ -1543,7 +1563,7 @@ class ChartNew extends React.Component {
                                                 <Brush ref={(brush) => {
                                                     this.brushRef1 = brush
                                                 }}
-                                                       enabled={this.state.brushEnabled} type='1D'
+                                                       enabled={this.state.brushEnabled} type='2D'
                                                        onBrush={this.handleBrush}/>
                                             </Chart>
 
@@ -1688,14 +1708,15 @@ class ChartNew extends React.Component {
                                                 От/До
                                             </div>
                                             <div className="iframe-filter__flex">
-                                                <form id='periodForm' onSubmit={(e) => {
+                                                <form id='periodForm' className={'flex-column'} onSubmit={(e) => {
                                                     e.preventDefault();
+                                                    // console.log(e.target.maxDate.value)
+                                                    // console.log(e.target.minDate.value)
                                                     this.props.changeDataByPeriodTime({
                                                         'from': +new Date(e.target.minDate.value),
                                                         'to': +new Date(e.target.maxDate.value)
                                                     })
-                                                    // console.log(e.target.maxDate.value)
-                                                    // console.log(e.target.minDate.value)
+
                                                 }}>
                                                     <TextField
                                                         id="min-date"

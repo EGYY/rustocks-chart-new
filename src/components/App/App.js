@@ -94,19 +94,8 @@ function App({config}) {
 
     const ticker = arrPapers.filter(item => item.stock)[0].stock[1];
 
-    const formatedData = data.map(item => {
-        if (item[ticker] === undefined) {
-            return {
-                ...item,
-                date: new Date(+item.date),
-                open: 0,
-                high: 0,
-                low: 0,
-                close: 0,
-                volume: 0,
-                volume2: 0
-            }
-        }else {
+
+    const formattedData = data.map(item => {
             return {
                 ...item,
                 date: new Date(+item.date),
@@ -117,8 +106,6 @@ function App({config}) {
                 volume: item[ticker].volume,
                 volume2: item[ticker].volume2
             }
-        }
-
     })
     //
     // console.log(arrPapers)
@@ -130,7 +117,7 @@ function App({config}) {
         <div className="App">
             <Chart type="hybrid"
                    isLoading={isLoading}
-                   data={formatedData}
+                   data={formattedData}
                    arrPapers={arrPapers}
                    ticker={ticker}
                    config={config}
