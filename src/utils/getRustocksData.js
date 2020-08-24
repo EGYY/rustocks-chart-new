@@ -60,13 +60,12 @@ const parseData = (data, stockColors, arrCompareKeys) => {
                         low: 0,
                         volume: 0,
                         volume2: 0,
-
                     }
 
                }
             }
         }
-        console.log(formatData)
+        // console.log(formatData)
 
     }else {
         formatData = null
@@ -115,7 +114,7 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
 
     });
 
-    console.log('Result data from api',result)
+    // console.log('Result data from api',result)
 
     const arrPapers = arrStockPapers.filter(item => item !== undefined);
 
@@ -123,7 +122,7 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
 
 
 
-    console.log('Parsed data from api',data)
+    // console.log('Parsed data from api',data)
 
     return {
         data,

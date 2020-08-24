@@ -39,6 +39,13 @@ import TextField from '@material-ui/core/TextField';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 import {Button,} from '@material-ui/core';
+import Table from '@material-ui/core/Table';
+import TableBody from '@material-ui/core/TableBody';
+import TableCell from '@material-ui/core/TableCell';
+import TableContainer from '@material-ui/core/TableContainer';
+import TableHead from '@material-ui/core/TableHead';
+import TableRow from '@material-ui/core/TableRow';
+import Paper from '@material-ui/core/Paper';
 
 import PrintIcon from '@material-ui/icons/Print';
 import FullscreenExitIcon from '@material-ui/icons/FullscreenExit';
@@ -74,6 +81,7 @@ class ChartNew extends React.Component {
 
         this.state = {
             testXExtents: [],
+            mobileXExtents: [],
             brushEnabled: true,
             stockCodes: {},
             widthChart: null,
@@ -197,7 +205,7 @@ class ChartNew extends React.Component {
     }
 
     handleChangeData({plotData}) {
-        console.log('plot data hanlde change',plotData)
+        // console.log('plot data hanlde change', plotData)
         this.brushRef1.terminate();
         this.brushRef2.terminate();
 
@@ -209,6 +217,10 @@ class ChartNew extends React.Component {
             this.brushRef4.terminate()
         }
 
+        this.setState({
+            plotData
+        })
+
         if (this.state.supportsTouch) {
             const start = this.props.data.map(item => item.date).indexOf(plotData[0].date);
             const end = this.props.data.map(item => item.date).indexOf(last(plotData).date);
@@ -216,7 +228,7 @@ class ChartNew extends React.Component {
             const mobileMinMaxVal = this.findMinMaxValues(this.props.data.slice(start, end), this.state.currAnalitics)
             // console.log(mobileMinMaxVal)
             this.setState({
-                plotData,
+                plotData: this.props.data.slice(start, end),
                 mobileMinMaxVal,
                 mobileXExtents
             })
@@ -510,8 +522,8 @@ class ChartNew extends React.Component {
     }
 
 
-    handleBrush(brushCoords) {
-        // console.log(brushCoords)
+    handleBrush(brushCoords, dataInfo) {
+        // console.log('datainfo',dataInfo)
         try {
             const left = Math.min(brushCoords.end.xValue, brushCoords.start.xValue);
             const right = Math.max(brushCoords.end.xValue, brushCoords.start.xValue);
@@ -521,6 +533,7 @@ class ChartNew extends React.Component {
             // console.log(minMaxValues)
             this.setState({
                 testXExtents: [left, right],
+                plotData: dataInfo,
                 yMin: minMaxValues[0],
                 yMax: minMaxValues[1]
             })
@@ -576,6 +589,35 @@ class ChartNew extends React.Component {
                 break;
         }
     }
+
+    createData(name, calories) {
+        return {name, calories};
+    }
+
+    createRowsTable(data, stockArr, numberFormat, numberFormatMillions) {
+        let sumData = 0;
+
+        const lastClose = data[data.length - 1][this.state.currAnalitics || stockArr[0].stock[1]].close;
+        const firstClose = data[0][this.state.currAnalitics || stockArr[0].stock[1]].close;
+        data.map(item => {
+            sumData += +item[this.state.currAnalitics || stockArr[0].stock[1]].volume2
+        });
+        const difference = ((lastClose - firstClose) / firstClose) * 100;
+        const minMax = this.state.mobileMinMaxVal.length !== 0 ? [this.state.mobileMinMaxVal[0], this.state.mobileMinMaxVal[1]] : [this.state.yMin, this.state.yMax]
+
+        let rows = [
+            this.createData('Открытие', data[0][this.state.currAnalitics || stockArr[0].stock[1]].open),
+            this.createData('Максимум', minMax[1]),
+            this.createData('Минимум', minMax[0]),
+            this.createData('Первое закрытие', firstClose),
+            this.createData('Последнее закрытие', lastClose),
+            this.createData('Изменение, %', numberFormat(difference)),
+            this.createData('Суммарный объем торгов(шт.)', numberFormatMillions(sumData).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')),
+        ];
+
+        return rows;
+    }
+
 
     render() {
         let start, end;
@@ -843,9 +885,10 @@ class ChartNew extends React.Component {
             xExtents = this.state.mobileXExtents;
             end = this.state.mobileXExtents[1];
             start = this.state.mobileXExtents[0];
+
         } else {
 
-            if ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1) && (this.state.mobileXExtents === undefined)) {
+            if ((Math.abs(this.state.testXExtents[0] - this.state.testXExtents[1]) > 1) && (this.state.mobileXExtents.length === 0)) {
 
                 xExtents = this.state.testXExtents;
                 end = this.state.testXExtents[1];
@@ -856,9 +899,10 @@ class ChartNew extends React.Component {
                 end = xAccessor(last(data));
                 start = xAccessor(data[0]);
 
-
             }
         }
+
+        // console.log(xExtents)
 
 
         const dataTrend = initialData.slice(start, end);
@@ -918,7 +962,14 @@ class ChartNew extends React.Component {
 
         // console.log(heightChartCanvas, chartOrigin)
 
-        console.log(this.state)
+        // console.log(this.state)
+        const sliceStart = this.state.mobileXExtents.length === 0 ? this.state.testXExtents[0] : this.state.mobileXExtents[0];
+        const sliceEnd = this.state.mobileXExtents.length === 0 ? this.state.testXExtents[1] : this.state.mobileXExtents[1];
+
+        let rows = this.createRowsTable(this.state.testXExtents.length === 0 ?
+            this.props.data :
+            this.props.data.slice(sliceStart, sliceEnd),
+            stockArr, numberFormat, numberFormatMillions);
 
         return (
             <div>
@@ -1154,6 +1205,30 @@ class ChartNew extends React.Component {
                                 </div>
                                 <div className="modal-mobile__content flex-column">
                                     {renderCheckboxTickers}
+                                </div>
+                            </div>
+                            <div className="modal-mobile__block">
+                                <div className="modal-mobile__title">
+                                    Аналитика
+                                </div>
+                                <div className="modal-mobile__content">
+                                    <FormControl style={{width: '150px'}}
+                                        // disabled={!(this.state.trueCountStockeCodes > 1) || false}
+                                    >
+                                        <Select
+                                            className={this.props.classes.input}
+                                            labelId="demo-simple-select-label"
+                                            id="demo-simple-select"
+                                            value={this.state.currAnalitics}
+                                            onChange={(e) => this.handleChangeSelectAnalitic(e)}
+                                        >
+                                            {
+                                                renderAnaliticSelector
+                                            }
+
+
+                                        </Select>
+                                    </FormControl>
                                 </div>
                             </div>
                             <div className="modal-mobile__block">
@@ -1580,7 +1655,7 @@ class ChartNew extends React.Component {
                                                                orient="left"
                                                                ticks={4}
                                                                showGridLines={true}
-                                                               tickFormat={value => numberFormatMillions(value)}
+                                                               tickFormat={value => numberFormatMillions(value).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')}
                                                         />
 
                                                         <MouseCoordinateY displayFormat={numberFormatMillions}/>
@@ -1667,7 +1742,30 @@ class ChartNew extends React.Component {
                                     </div>
                                 ) : null
                             }
+                            {this.state.trueCountStockeCodes !== 0 ? (
+                                <TableContainer component={Paper}>
+                                    <Table aria-label="simple table">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>{this.state.currAnalitics}</TableCell>
+                                                <TableCell align="right">RUB</TableCell>
 
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {rows.map((row) => (
+                                                <TableRow key={row.name}>
+                                                    <TableCell component="th" scope="row">
+                                                        {row.name}
+                                                    </TableCell>
+                                                    <TableCell align="right">{row.calories}</TableCell>
+
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            ) : null}
 
                         </div>
                         <div
