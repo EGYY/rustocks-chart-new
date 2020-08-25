@@ -313,19 +313,21 @@ body {
 }
 
 @media print {
-  body * {
+  *{
     visibility: hidden;
   }
 
   .chartCanvas, .chartCanvas * {
-
     visibility: visible;
-  }
 
+  }
+  
   .chartCanvas {
-    position: absolute;
-    page-break-after: always;
-    right: 0;
+    position: absolute !important;
+    overflow:visible;
+    page-break-after: auto;
+    width: 100%;
+    height: 100%;
     top: 0;
     left: 0;
 

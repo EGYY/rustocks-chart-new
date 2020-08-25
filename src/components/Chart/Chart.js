@@ -1,7 +1,5 @@
 import React from "react";
 
-import exportFromJSON from 'export-from-json'
-
 import {timeFormat} from "d3-time-format";
 import {format} from "d3-format";
 
@@ -610,14 +608,6 @@ class ChartNew extends React.Component {
         ];
 
         return rows;
-    }
-
-
-    downloadJsonToExcel(data, type) {
-        const fileName = `${this.state.currAnalitics}`;
-        const dataExcel =JSON.parse(data.innerText);
-
-        exportFromJSON({dataExcel, fileName, type})
     }
 
 
@@ -1400,7 +1390,7 @@ class ChartNew extends React.Component {
                                                 style={{width: `${this.state.widthChart - 60}px`}}
                                                 variant="contained"
                                                 color="primary"
-                                                onClick={() => window.print(this.chartRef)}>
+                                                onClick={() => window.print()}>
                                             Распечатать график
                                         </Button>
                                     </span>
