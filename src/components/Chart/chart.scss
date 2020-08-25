@@ -312,25 +312,25 @@ body {
   }
 }
 
-@media print {
-  body *{
-    visibility: hidden;
-  }
-
-  .chartCanvas, .chartCanvas * {
-    visibility: visible;
-    overflow:visible;
-  }
-
-
-  .chartCanvas {
-    position: absolute !important;
-
-    page-break-after: auto;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-
-  }
-}
+//@media print {
+//  body *{
+//    visibility: hidden;
+//  }
+//
+//  .chartCanvas, .chartCanvas * {
+//    visibility: visible;
+//    overflow:visible;
+//  }
+//
+//
+//  .chartCanvas {
+//    position: absolute !important;
+//
+//    page-break-after: auto;
+//    width: 100%;
+//    height: 100%;
+//    top: 0;
+//    left: 0;
+//
+//  }
+//}

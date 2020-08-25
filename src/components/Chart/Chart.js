@@ -3,6 +3,8 @@ import React from "react";
 import {timeFormat} from "d3-time-format";
 import {format} from "d3-format";
 
+import ReactToPrint from 'react-to-print';
+
 import {ChartCanvas, Chart} from "react-financial-charts";
 
 import {XAxis, YAxis} from "react-financial-charts/lib/axes";
@@ -144,11 +146,22 @@ class ChartNew extends React.Component {
     componentDidUpdate(prevProps, prevState, snapshot) {
         if ((prevState.currAnalitics !== this.state.currAnalitics) && this.state.trueCountStockeCodes === 1) {
             // const dataForMinMax = this.props.data.map(item => item[this.state.currAnalitics])
-            const minMaxVal = this.findMinMaxValues(this.props.data, this.state.currAnalitics)
-            this.setState({
-                yMax: minMaxVal[1],
-                yMin: minMaxVal[0]
-            })
+            let minMaxVal
+            if (this.state.testXExtents.length !== 0) {
+                console.log(this.state.testXExtents)
+                minMaxVal = this.findMinMaxValues(this.props.data.slice(this.state.testXExtents[0], this.state.testXExtents[1]), this.state.currAnalitics)
+                this.setState({
+                    yMax: minMaxVal[1],
+                    yMin: minMaxVal[0]
+                })
+            } else {
+                minMaxVal = this.findMinMaxValues(this.props.data, this.state.currAnalitics)
+                this.setState({
+                    yMax: minMaxVal[1],
+                    yMin: minMaxVal[0]
+                })
+            }
+
         }
     }
 
@@ -977,7 +990,7 @@ class ChartNew extends React.Component {
                 }
 
             })
-        }else {
+        } else {
             getDataForExcel = []
         }
 
@@ -1397,13 +1410,13 @@ class ChartNew extends React.Component {
                                     </span>
 
                                     <span>
-                                        <Button className={this.props.classes.btn}
-                                                style={{width: `${this.state.widthChart - 60}px`}}
-                                                variant="contained"
-                                                color="primary"
-                                                onClick={() => window.print()}>
-                                            Распечатать график
-                                        </Button>
+                                        {/*<Button className={this.props.classes.btn}*/}
+                                        {/*        style={{width: `${this.state.widthChart - 60}px`}}*/}
+                                        {/*        variant="contained"*/}
+                                        {/*        color="primary"*/}
+                                        {/*        onClick={() => window.print()}>*/}
+                                        {/*    Распечатать график*/}
+                                        {/*</Button>*/}
                                     </span>
 
                                 </div>
@@ -1773,11 +1786,11 @@ class ChartNew extends React.Component {
                                                     <TableCell component="th" scope="row">
                                                         {row.name}
                                                     </TableCell>
-                                                    <TableCell align="right">{ index === 5 ?
+                                                    <TableCell align="right">{index === 5 ?
                                                         row.values < 0 ?
-                                                            (<span style={{color:'red'}}>{row.values}</span>) :
-                                                            (<span style={{color:'green'}}>{row.values}</span>) :
-                                                        row.values }</TableCell>
+                                                            (<span style={{color: 'red'}}>{row.values}</span>) :
+                                                            (<span style={{color: 'green'}}>{row.values}</span>) :
+                                                        row.values}</TableCell>
 
                                                 </TableRow>
                                             ))}
@@ -2099,12 +2112,23 @@ class ChartNew extends React.Component {
                                 </div>
                                 <div className="iframe-filter__flex">
                                     <span>
-                                      <Button className={this.props.classes.btn}
-                                              variant="contained"
-                                              color="primary"
-                                              onClick={() => window.print(this.chartRef)}>
-                                        Распечатать график
-                                    </Button>
+                                      {/*<Button className={this.props.classes.btn}*/}
+                                      {/*            variant="contained"*/}
+                                      {/*            color="primary"*/}
+                                      {/*            onClick={() => window.print(this.chartRef)}>*/}
+                                      {/*      Распечатать график*/}
+                                      {/*  </Button>*/}
+                                        <ReactToPrint trigger={() => {
+                                            return (
+                                                <Button className={this.props.classes.btn}
+                                                        variant="contained"
+                                                        color="primary"
+                                                       >
+                                                    Распечатать график
+                                                </Button>
+                                            );
+                                        }}
+                                                      content={() => this.chartRef}/>
                                     </span>
 
                                 </div>

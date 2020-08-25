@@ -23,6 +23,7 @@
     "react-dom": "^16.13.1",
     "react-financial-charts": "^0.5.1",
     "react-scripts": "^3.4.3",
+    "react-to-print": "^2.10.0",
     "trendline": "^0.3.1",
     "xlsx": "^0.16.4"
   },
