@@ -2,8 +2,10 @@ import * as _ from 'lodash';
 
 const parseData = (data, stockColors, arrCompareKeys) => {
     let parsedData = [];
-    let formatData
+    let formatData;
     arrCompareKeys = arrCompareKeys.map(item => item.replace('Close', ''))
+
+    //format data to common structure
     for (let i = 0; i < data.length; i++) {
         if (Object.keys(data[i].values).length !== 0) {
             for (const [key, value] of Object.entries(data[i].values)) {
@@ -43,15 +45,13 @@ const parseData = (data, stockColors, arrCompareKeys) => {
 
     }
 
-
+    //foramt data if data[code] null in range
 
     if (parsedData.length !== 0) {
         formatData = _.map(_.groupBy(parsedData,(item) =>  { return item.date }), (g) =>  { return _.merge.apply(this, g) })
-        // console.log('formatData data',formatData)
         for (let i = 0; i < formatData.length; i++ ){
             for (let j = 0; j < arrCompareKeys.length; j++) {
                if (Object.keys(formatData[i]).indexOf(arrCompareKeys[j]) === -1){
-                   // console.log('Меня нет', arrCompareKeys[j])
                     formatData[i][arrCompareKeys[j]] = {
                         color: stockColors[j],
                         open: 0,
@@ -65,7 +65,6 @@ const parseData = (data, stockColors, arrCompareKeys) => {
                }
             }
         }
-        // console.log(formatData)
 
     }else {
         formatData = null
@@ -93,11 +92,12 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
     });
 
     const result = await response.json();
-    // console.log(result)
 
+    //array keys to compare calculator
     const arrCompareKeys = [];
+
+    //arr for checboxes selectboxes
     const arrStockPapers = result.map(item => {
-        // console.log(`Item ${item} length values ${Object.keys(item.values).length}`)
         if (Object.keys(item.values).length !== 0){
             if (item.code && item.ticker) {
                 arrCompareKeys.push(`${item.ticker}Close`)
@@ -114,15 +114,10 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
 
     });
 
-    // console.log('Result data from api',result)
 
     const arrPapers = arrStockPapers.filter(item => item !== undefined);
 
     const data = parseData(result, stockColors, arrCompareKeys);
-
-
-
-    // console.log('Parsed data from api',data)
 
     return {
         data,

@@ -2,8 +2,6 @@ import React from "react";
 import Button from "@material-ui/core/Button";
 import { makeStyles } from '@material-ui/core/styles';
 
-import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
-
 import ReactExport from "react-data-export";
 
 const ExcelFile = ReactExport.ExcelFile;
@@ -19,7 +17,7 @@ const styles = makeStyles({
 
 const DownloadExelBtn = ({data, width}) => {
     const classes = styles();
-
+    console.log('data from excel btn', data)
     return (
         <ExcelFile element={<Button classes={{root: classes.root}} style={{width: `${width - 60}px`}} variant="contained" color="primary">Скачать в
             Excel</Button>}>

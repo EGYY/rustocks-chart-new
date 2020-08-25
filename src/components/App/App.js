@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 
 import RefreshIcon from '@material-ui/icons/Refresh';
 import IconButton from "@material-ui/core/IconButton";
@@ -40,7 +40,7 @@ function App({config}) {
             console.log(e);
             setErr(true)
         });
-    }, [timeGap, periodTime]);
+    }, [timeGap, periodTime, config.stockData, config.stockColors]);
 
     const changeDataByTimeGap = (gap) => {
         setTimeGap(gap);

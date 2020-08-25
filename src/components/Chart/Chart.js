@@ -1,5 +1,7 @@
 import React from "react";
 
+import exportFromJSON from 'export-from-json'
+
 import {timeFormat} from "d3-time-format";
 import {format} from "d3-format";
 
@@ -22,7 +24,7 @@ import StraightLine from "react-financial-charts/lib/interactive/components/Stra
 import {discontinuousTimeScaleProvider} from "react-financial-charts/lib/scale";
 import {withDeviceRatio} from "@react-financial-charts/utils";
 import {last} from "react-financial-charts/lib/utils";
-import {RSITooltip, HoverTooltip} from "react-financial-charts/lib/tooltip";
+import {HoverTooltip} from "react-financial-charts/lib/tooltip";
 import {
     CrossHairCursor,
     EdgeIndicator,
@@ -33,7 +35,6 @@ import {
 import {ema, macd, sma, rsi, compare} from "react-financial-charts/lib/indicator";
 
 import createTrend from 'trendline';
-
 
 import TextField from '@material-ui/core/TextField';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
@@ -46,14 +47,9 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-
-import PrintIcon from '@material-ui/icons/Print';
-import FullscreenExitIcon from '@material-ui/icons/FullscreenExit';
-
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
-import Input from "@material-ui/core/Input";
 
 import {withStyles} from '@material-ui/core/styles';
 
@@ -117,18 +113,13 @@ class ChartNew extends React.Component {
         }
     }
 
-
     componentDidMount() {
-        // this.chartRef.subscribe('chartEventListener', {listener: this.handleEvents})
         const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
         const defaultPeriod = this.getPeriodTime();
-
         const code = this.props.arrPapers.filter(item => item.stock)[0].stock[1];
-
         let oldStockCodes = this.state.stockCodes;
         let newStockCodes = oldStockCodes;
         newStockCodes[code] = !(oldStockCodes[code] || false)
-
 
         this.setState({
             stockCodes: newStockCodes,
@@ -141,14 +132,11 @@ class ChartNew extends React.Component {
         })
 
         const minMaxVal = this.findMinMaxValues(this.props.data, code)
-        // console.log(minMaxVal)
 
         this.setState({
             yMax: minMaxVal[1],
             yMin: minMaxVal[0]
         })
-
-        // console.log(dataForMinMaxSearch)
 
         window.addEventListener('resize', this.resizeWindow);
         window.visualViewport.addEventListener("resize", this.viewportHandler);
@@ -164,11 +152,9 @@ class ChartNew extends React.Component {
         this.setState({
             ratio: window.devicePixelRatio
         })
-        // console.log('viewport',window.devicePixelRatio);
     }
 
     resizeWindow() {
-
         this.setState({
             widthChart: this.leftCol.current.offsetWidth,
 
@@ -191,7 +177,6 @@ class ChartNew extends React.Component {
     }
 
     findMinMaxValues(data, currAnalitics) {
-        // console.log(data)
         let min = data[0][currAnalitics].close;
         let max = data[0][currAnalitics].close;
 
@@ -205,7 +190,6 @@ class ChartNew extends React.Component {
     }
 
     handleChangeData({plotData}) {
-        // console.log('plot data hanlde change', plotData)
         this.brushRef1.terminate();
         this.brushRef2.terminate();
 
@@ -226,18 +210,14 @@ class ChartNew extends React.Component {
             const end = this.props.data.map(item => item.date).indexOf(last(plotData).date);
             const mobileXExtents = [start, end];
             const mobileMinMaxVal = this.findMinMaxValues(this.props.data.slice(start, end), this.state.currAnalitics)
-            // console.log(mobileMinMaxVal)
             this.setState({
                 plotData: this.props.data.slice(start, end),
                 mobileMinMaxVal,
                 mobileXExtents
             })
-
-
         }
 
         this.setState(prevState => {
-            // console.log(prevState, this.state)
             let testXExtents, minMaxVal;
             if (prevState.testXExtents === this.state.testXExtents) {
                 const start = this.props.data.indexOf(this.props.data[0]);
@@ -263,7 +243,7 @@ class ChartNew extends React.Component {
         });
     }
 
-    handleChangeCheckbox(code, data) {
+    handleChangeCheckbox(code) {
         let key = `is${code}`;
         let upd = {};
         upd[key] = !(this.state[key] || false);
@@ -274,12 +254,11 @@ class ChartNew extends React.Component {
     handleChangeCheckboxCode(code) {
         let oldStockCodes = this.state.stockCodes;
         let newStockCodes = oldStockCodes;
-        newStockCodes[code] = !(oldStockCodes[code] || false)
+        newStockCodes[code] = !(oldStockCodes[code] || false);
         this.setState({
             stockCodes: newStockCodes
-        })
-        const trueStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true)
-        // console.log(trueCountStockeCodes)
+        });
+        const trueStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true);
         this.setState({
             trueCountStockeCodes: trueStockeCodes.length
         });
@@ -294,14 +273,14 @@ class ChartNew extends React.Component {
                 isRsi: false,
                 isMacd: false
 
-            })
+            });
         }
         if (trueStockeCodes.length === 1) {
 
-            this.dataCalculator(trueStockeCodes[0][0])
+            this.dataCalculator(trueStockeCodes[0][0]);
             this.setState({
                 currAnalitics: trueStockeCodes[0][0]
-            })
+            });
         }
 
 
@@ -318,7 +297,7 @@ class ChartNew extends React.Component {
     }
 
     dataCalculator(currAnalitics = this.state.currAnalitics) {
-        let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc, sourcePath
+        let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc;
 
         compareCalc = compare()
             .options({
@@ -457,6 +436,11 @@ class ChartNew extends React.Component {
                     volumeTypeChart: type
                 });
                 break;
+
+            default:
+                console.log('handleChangeSelect', e)
+                break;
+
         }
     }
 
@@ -504,6 +488,10 @@ class ChartNew extends React.Component {
                 });
                 this.dataCalculator()
                 break;
+
+            default:
+                console.log('Period', period)
+                break;
         }
 
     }
@@ -523,21 +511,19 @@ class ChartNew extends React.Component {
 
 
     handleBrush(brushCoords, dataInfo) {
-        // console.log('datainfo',dataInfo)
         try {
             const left = Math.min(brushCoords.end.xValue, brushCoords.start.xValue);
             const right = Math.max(brushCoords.end.xValue, brushCoords.start.xValue);
             const dataForMinMaxSearch = this.props.data.slice(left, right);
-            // console.log(dataForMinMaxSearch)
             const minMaxValues = this.findMinMaxValues(dataForMinMaxSearch, this.state.currAnalitics);
-            // console.log(minMaxValues)
+
             this.setState({
                 testXExtents: [left, right],
                 plotData: dataInfo,
                 yMin: minMaxValues[0],
                 yMax: minMaxValues[1]
             })
-            // console.log(brushCoords);
+
             this.brushRef1.terminate();
             this.brushRef2.terminate();
 
@@ -545,7 +531,7 @@ class ChartNew extends React.Component {
                 this.brushRef3.terminate()
             }
 
-            if (this.state.isRsi) {
+            if (this.state.isMacd) {
                 this.brushRef4.terminate()
             }
 
@@ -571,6 +557,10 @@ class ChartNew extends React.Component {
                     filtersModal: true
                 })
                 break;
+
+            default:
+                console.log('This type of openModal is not created', type);
+                break;
         }
 
     }
@@ -587,11 +577,15 @@ class ChartNew extends React.Component {
                     filtersModal: false
                 })
                 break;
+
+            default:
+                console.log('This type of closeModal is not created', type);
+                break;
         }
     }
 
-    createData(name, calories) {
-        return {name, calories};
+    createData(name, values) {
+        return {name, values};
     }
 
     createRowsTable(data, stockArr, numberFormat, numberFormatMillions) {
@@ -619,9 +613,17 @@ class ChartNew extends React.Component {
     }
 
 
+    downloadJsonToExcel(data, type) {
+        const fileName = `${this.state.currAnalitics}`;
+        const dataExcel =JSON.parse(data.innerText);
+
+        exportFromJSON({dataExcel, fileName, type})
+    }
+
+
     render() {
         let start, end;
-        const {data: initialData, type, ratio, arrPapers, ticker} = this.props;
+        const {data: initialData, type, ratio, arrPapers} = this.props;
         const {
             emaPeriod,
             smaPeriod,
@@ -640,12 +642,10 @@ class ChartNew extends React.Component {
             isTotalIncome,
             yMax,
             yMin,
-            timeGap,
-            plotData
+            timeGap
         } = this.state;
-        const margin = {left: 60, right: 60, top: 20, bottom: 24}
-        // console.log(this.state)
 
+        const margin = {left: 60, right: 60, top: 20, bottom: 24}
 
         const numberFormat = format(".2f");
         const numberFormatMillions = format(".2s");
@@ -675,7 +675,14 @@ class ChartNew extends React.Component {
                         },
                         {
                             label: "Объем (акции)",
-                            value: currentItem[this.state.currAnalitics].volume2 && numberFormatMillions(currentItem[this.state.currAnalitics].volume2)
+                            value: currentItem[this.state.currAnalitics].volume2 &&
+                                numberFormatMillions(currentItem[this.state.currAnalitics].volume2).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')
+                        },
+
+                        {
+                            label: "Оборот",
+                            value: currentItem[this.state.currAnalitics].volume &&
+                                numberFormatMillions(currentItem[this.state.currAnalitics].volume).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')
                         }
                     ]
                         .concat(
@@ -693,10 +700,8 @@ class ChartNew extends React.Component {
         const stockArr = arrPapers.filter(item => item.stock);
         const indexesArr = arrPapers.filter(item => item.index);
 
-        // console.log(this.state);
         const renderAnaliticSelector = stockArr.map((item, i) => {
             const disabled = !((this.state.stockCodes[item.stock[1]] !== undefined) && (this.state.stockCodes[item.stock[1]] !== false));
-            // console.log(disabled)
             return <MenuItem key={i}
                              disabled={disabled && true}
                              value={item.stock[1]}>{item.stock[1]}</MenuItem>
@@ -711,7 +716,7 @@ class ChartNew extends React.Component {
                             yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d['compare'][`${code}Close`] : d => d[code].close}
                             stroke={initialData[0][code].color}/>
                     );
-                    break;
+
 
                 case "candle-chart":
                     return (
@@ -727,7 +732,7 @@ class ChartNew extends React.Component {
 
                             }/>
                     );
-                    break;
+
 
                 case "ohl-chart":
                     return (
@@ -739,7 +744,7 @@ class ChartNew extends React.Component {
                         })}
                                     stroke={this.props.config.ohlChart.color}/>
                     );
-                    break;
+
 
                 case 'area-chart':
                     return (
@@ -752,14 +757,14 @@ class ChartNew extends React.Component {
                             yAccessor={d => d[code].close}
                         />
                     );
-                    break;
+
                 default:
                     return (
                         <LineSeries
                             yAccessor={d => d[code].close}
                             stroke={initialData[0][code].color}/>
                     );
-                    break;
+
             }
 
         }
@@ -806,7 +811,6 @@ class ChartNew extends React.Component {
         let emaCustom, smaCustom, rsiCalculator, macdCalculator, calculatedData, compareCalc
 
         if (this.state.emaCustom) {
-            // console.log('i am initial data',initialData.filter(item => item[this.state.currAnalitics]))
             emaCustom = this.state.emaCustom;
             macdCalculator = this.state.macdCalculator;
             rsiCalculator = this.state.rsiCalculator;
@@ -866,8 +870,6 @@ class ChartNew extends React.Component {
             calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
         }
 
-        // console.log(calculatedData)
-
         const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(d => d.date);
 
         const {
@@ -902,18 +904,12 @@ class ChartNew extends React.Component {
             }
         }
 
-        // console.log(xExtents)
-
-
         const dataTrend = initialData.slice(start, end);
 
         const timeStamps = dataTrend.map(item => +item.date);
-        // console.log('data-trend',dataTrend)
 
         const xMax = Math.max(...timeStamps);
         const xMin = Math.min(...timeStamps);
-
-        // console.log('data trend', dataTrend)
 
         const dataForTrendLine = dataTrend.map(item => {
 
@@ -932,9 +928,6 @@ class ChartNew extends React.Component {
             end: [start, trend.calcY(xMin)],
         };
 
-        // console.log('trend-data',trendData)
-
-
         let yExtents = [
             ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.compare : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
             ((this.state.trueCountStockeCodes >= 1) || (this.state.indexChart !== 'off-index')) ? null : smaCustom.accessor(),
@@ -945,8 +938,6 @@ class ChartNew extends React.Component {
 
         stockArr.map(item => yExtents.push((((this.state.trueCountStockeCodes > 1) ||
             (this.state.indexChart !== 'off-index')) && this.state.stockCodes[item.stock[1]]) ? d => d['compare'][`${item.stock[1]}Close`] : this.state.stockCodes[item.stock[1]] ? d => d[item.stock[1]].close : null))
-
-        // console.log(yExtents)
 
 
         let heightMainChartLines = 250;
@@ -960,9 +951,6 @@ class ChartNew extends React.Component {
 
         let heightChartCanvas = heightMainChartLines + heightVolumeChart + heightRsiChart + heightMacdChart + chartPadding;
 
-        // console.log(heightChartCanvas, chartOrigin)
-
-        // console.log(this.state)
         const sliceStart = this.state.mobileXExtents.length === 0 ? this.state.testXExtents[0] : this.state.mobileXExtents[0];
         const sliceEnd = this.state.mobileXExtents.length === 0 ? this.state.testXExtents[1] : this.state.mobileXExtents[1];
 
@@ -970,6 +958,30 @@ class ChartNew extends React.Component {
             this.props.data :
             this.props.data.slice(sliceStart, sliceEnd),
             stockArr, numberFormat, numberFormatMillions);
+
+        let getDataForExcel;
+
+        const dataForExel = this.state.testXExtents ?
+            data.slice(this.state.testXExtents[0], this.state.testXExtents[1]) :
+            this.state.mobileXExtents ? data.slice(this.state.mobileXExtents[0], this.state.mobileXExtents[1]) : data
+        if (this.state.currAnalitics) {
+            getDataForExcel = dataForExel.map(item => {
+                return {
+                    date: item.date,
+                    close: item[this.state.currAnalitics].close,
+                    open: item[this.state.currAnalitics].open,
+                    high: item[this.state.currAnalitics].high,
+                    low: item[this.state.currAnalitics].low,
+                    volume: item[this.state.currAnalitics].volume,
+                }
+
+            })
+        }else {
+            getDataForExcel = []
+        }
+
+        console.log(getDataForExcel)
+
 
         return (
             <div>
@@ -989,7 +1001,7 @@ class ChartNew extends React.Component {
                                 <div className="modal-mobile__content">
                                     <FormControlLabel
                                         disabled={((this.state.trueCountStockeCodes > 1) ||
-                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                         control={
                                             <Checkbox
                                                 checkedIcon={<span
@@ -1014,7 +1026,7 @@ class ChartNew extends React.Component {
                                 <div className="modal-mobile__content">
                                     <FormControlLabel
                                         disabled={((this.state.trueCountStockeCodes > 1) ||
-                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                         control={
                                             <Checkbox
                                                 checked={isTrendLine}
@@ -1037,7 +1049,7 @@ class ChartNew extends React.Component {
                                 <div className="modal-mobile__content">
                                     <FormControlLabel
                                         disabled={((this.state.trueCountStockeCodes > 1) ||
-                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                         control={
                                             <Checkbox
                                                 checked={isSma}
@@ -1067,7 +1079,7 @@ class ChartNew extends React.Component {
 
                                     <FormControlLabel
                                         disabled={((this.state.trueCountStockeCodes > 1) ||
-                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                         control={
                                             <Checkbox
                                                 checked={isEma}
@@ -1099,7 +1111,7 @@ class ChartNew extends React.Component {
                                 <div className="modal-mobile__content">
                                     <FormControlLabel
                                         disabled={((this.state.trueCountStockeCodes > 1) ||
-                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                            (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                         control={
                                             <Checkbox
                                                 checked={isTotalIncome}
@@ -1121,7 +1133,7 @@ class ChartNew extends React.Component {
                                 </div>
                                 <div className="modal-mobile__content">
                                     <FormControlLabel
-                                        disabled={(this.state.trueCountStockeCodes == 0) || false}
+                                        disabled={(this.state.trueCountStockeCodes === 0) || false}
                                         control={
                                             <Checkbox
                                                 checked={isRsi}
@@ -1151,7 +1163,7 @@ class ChartNew extends React.Component {
                                 </div>
                                 <div className="modal-mobile__content">
                                     <FormControlLabel
-                                        disabled={(this.state.trueCountStockeCodes == 0) || false}
+                                        disabled={(this.state.trueCountStockeCodes === 0) || false}
                                         control={
                                             <Checkbox
                                                 checked={isMacd}
@@ -1370,7 +1382,9 @@ class ChartNew extends React.Component {
 
                             <div className="modal-mobile__block ">
                                 <div className="modal-mobile__content flex-column">
-                                    <DownloadExelBtn data={data} width={this.state.widthChart}/>
+                                    <DownloadExelBtn data={getDataForExcel}
+                                                     width={this.state.widthChart}/>
+
                                     <span>
                                         <Button className={this.props.classes.btn}
                                                 style={{width: `${this.state.widthChart - 60}px`}}
@@ -1753,12 +1767,16 @@ class ChartNew extends React.Component {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {rows.map((row) => (
+                                            {rows.map((row, index) => (
                                                 <TableRow key={row.name}>
                                                     <TableCell component="th" scope="row">
                                                         {row.name}
                                                     </TableCell>
-                                                    <TableCell align="right">{row.calories}</TableCell>
+                                                    <TableCell align="right">{ index === 5 ?
+                                                        row.values < 0 ?
+                                                            (<span style={{color:'red'}}>{row.values}</span>) :
+                                                            (<span style={{color:'green'}}>{row.values}</span>) :
+                                                        row.values }</TableCell>
 
                                                 </TableRow>
                                             ))}
@@ -1808,8 +1826,6 @@ class ChartNew extends React.Component {
                                             <div className="iframe-filter__flex">
                                                 <form id='periodForm' className={'flex-column'} onSubmit={(e) => {
                                                     e.preventDefault();
-                                                    // console.log(e.target.maxDate.value)
-                                                    // console.log(e.target.minDate.value)
                                                     this.props.changeDataByPeriodTime({
                                                         'from': +new Date(e.target.minDate.value),
                                                         'to': +new Date(e.target.maxDate.value)
@@ -1883,7 +1899,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checkedIcon={<span
@@ -1905,7 +1921,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTrendLine}
@@ -1925,7 +1941,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isSma}
@@ -1951,7 +1967,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isEma}
@@ -1979,7 +1995,7 @@ class ChartNew extends React.Component {
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
                                             disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes == 0)) || false}
+                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTotalIncome}
@@ -2000,7 +2016,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(this.state.trueCountStockeCodes == 0) || false}
+                                            disabled={(this.state.trueCountStockeCodes === 0) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isRsi}
@@ -2025,7 +2041,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={(this.state.trueCountStockeCodes == 0) || false}
+                                            disabled={(this.state.trueCountStockeCodes === 0) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isMacd}
@@ -2066,8 +2082,9 @@ class ChartNew extends React.Component {
                             </div>
                             <div className="iframe-filter__block">
                                 <div className="iframe-filter__flex">
-                                    <DownloadExelBtn data={data}/>
+                                    <DownloadExelBtn data={getDataForExcel}/>
                                 </div>
+
                                 <div className="iframe-filter__flex">
                                     <span>
                                     <Button className={this.props.classes.btn}
@@ -2104,7 +2121,6 @@ class ChartNew extends React.Component {
 
 
 const config = window.chartConfig;
-// console.log(config)
 
 const styles = {
     modal: {
@@ -2127,5 +2143,3 @@ const styles = {
 }
 
 export default (withStyles(styles)(withDeviceRatio()(ChartNew)));
-
-// export default withSize({ style: { minHeight: 600 } })(withDeviceRatio()(ChartNew));
