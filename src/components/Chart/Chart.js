@@ -141,6 +141,17 @@ class ChartNew extends React.Component {
 
     }
 
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        if ((prevState.currAnalitics !== this.state.currAnalitics) && this.state.trueCountStockeCodes === 1) {
+            // const dataForMinMax = this.props.data.map(item => item[this.state.currAnalitics])
+            const minMaxVal = this.findMinMaxValues(this.props.data, this.state.currAnalitics)
+            this.setState({
+                yMax: minMaxVal[1],
+                yMin: minMaxVal[0]
+            })
+        }
+    }
+
     componentWillUnmount() {
         window.removeEventListener('resize', this.resizeWindow);
         window.visualViewport.removeEventListener("resize", this.viewportHandler);
