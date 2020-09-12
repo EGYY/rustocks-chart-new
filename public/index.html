@@ -13,68 +13,7 @@
 </head>
 <body>
 <noscript>You need to enable JavaScript to run this app.</noscript>
-<div class="container">
-    <h1>I am content page 1</h1>
-    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aliquam animi aspernatur delectus esse eum ipsam modi
-        nesciunt perspiciatis possimus quae quasi rem repellendus saepe tempore vitae, voluptas voluptatibus? Eius,
-        impedit.</p>
-
-</div>
-
-
-<!--render chart here-->
-<style>
-    .container {
-        margin: 0 auto;
-        max-width: 1200px;
-        width: 100%;
-        display: flex
-    }
-
-    #root {
-        width: 700px;
-        height: 800px;
-        overflow: auto
-    }
-
-    .block-1 {
-        width: 200px;
-        float: left;
-        max-width: 200px;
-        height: 800px;
-        background: #9f70fa
-    }
-
-    .block-2 {
-        width: 200px;
-        float: right;
-        max-width: 200px;
-        height: 800px;
-        background: #9f70fa
-    }
-
-    @media screen and (max-width: 600px) {
-        .block-1 {
-            display: none
-        }
-
-        .block-2 {
-            display: none
-        }
-    }</style>
-<div class="container">
-    <div class="block-1">Text left</div>
-    <div id="root"></div>
-    <div class="block-2">Text right</div>
-</div>
-
-<div class="container">
-    <h1>I am content page 1</h1>
-    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aliquam animi aspernatur delectus esse eum ipsam modi
-        nesciunt perspiciatis possimus quae quasi rem repellendus saepe tempore vitae, voluptas voluptatibus? Eius,
-        impedit.</p>
-
-</div>
+<div id="root"></div>
 <script>
     function tryRender() {
         const config = {

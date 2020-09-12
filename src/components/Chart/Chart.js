@@ -58,10 +58,11 @@ import clsx from "clsx";
 import './chart.scss';
 import Spinner from "../Spinner/Spinner";
 import DownloadExelBtn from "../DownloadExelBtn/DownloadExelBtn";
-import {Brush} from "react-financial-charts/lib/interactive";
-
+// import {Brush} from "react-financial-charts/lib/interactive";
+import {Brush} from "../../CustomChartComponents/Brush/Brush";
 
 class ChartNew extends React.Component {
+
     constructor(props) {
         super(props);
 
@@ -145,10 +146,8 @@ class ChartNew extends React.Component {
 
     componentDidUpdate(prevProps, prevState, snapshot) {
         if ((prevState.currAnalitics !== this.state.currAnalitics) && this.state.trueCountStockeCodes === 1) {
-            // const dataForMinMax = this.props.data.map(item => item[this.state.currAnalitics])
             let minMaxVal
             if (this.state.testXExtents.length !== 0) {
-                console.log(this.state.testXExtents)
                 minMaxVal = this.findMinMaxValues(this.props.data.slice(this.state.testXExtents[0], this.state.testXExtents[1]), this.state.currAnalitics)
                 this.setState({
                     yMax: minMaxVal[1],
@@ -190,8 +189,7 @@ class ChartNew extends React.Component {
         const to = new Date(periodTime.to);
         const fromString = from.toISOString().slice(0, 10);
         const toString = to.toISOString().slice(0, 10);
-        // const fromDateString = `${new Date(+periodTime.from).getFullYear()}-${new Date(+periodTime.from).getMonth() + 1}-${new Date(+periodTime.from).getHours()}`
-        // const toDateString = `${new Date(+periodTime.to).getFullYear()}-${new Date(+periodTime.to).getMonth() + 1}-${new Date(+periodTime.to).getHours()}`
+
         return {
             from: fromString,
             to: toString
@@ -612,11 +610,13 @@ class ChartNew extends React.Component {
 
     createRowsTable(data, stockArr, numberFormat, numberFormatMillions) {
         let sumData = 0;
+        let sumDataMoney = 0;
 
         const lastClose = data[data.length - 1][this.state.currAnalitics || stockArr[0].stock[1]].close;
         const firstClose = data[0][this.state.currAnalitics || stockArr[0].stock[1]].close;
         data.map(item => {
             sumData += +item[this.state.currAnalitics || stockArr[0].stock[1]].volume2
+            sumDataMoney += +item[this.state.currAnalitics || stockArr[0].stock[1]].volume
         });
         const difference = ((lastClose - firstClose) / firstClose) * 100;
         const minMax = this.state.mobileMinMaxVal.length !== 0 ? [this.state.mobileMinMaxVal[0], this.state.mobileMinMaxVal[1]] : [this.state.yMin, this.state.yMax]
@@ -629,6 +629,7 @@ class ChartNew extends React.Component {
             this.createData('Последнее закрытие', lastClose),
             this.createData('Изменение, %', numberFormat(difference)),
             this.createData('Суммарный объем торгов(шт.)', numberFormatMillions(sumData).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')),
+            this.createData('Суммарный объем торгов', numberFormatMillions(sumDataMoney).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')),
         ];
 
         return rows;
@@ -896,6 +897,13 @@ class ChartNew extends React.Component {
 
         let xExtents;
 
+        const compareData = data.map(item => {
+            return item[stockArr[0].stock[1] || this.state.currAnalitics]
+        })
+
+        console.log(compareData);
+
+        // console.log(compareCalc(data))
 
         if ((this.state.supportsTouch) && (this.state.plotData.length > 0)) {
             xExtents = this.state.mobileXExtents;
@@ -994,7 +1002,7 @@ class ChartNew extends React.Component {
             getDataForExcel = []
         }
 
-        console.log(getDataForExcel)
+        // console.log(getDataForExcel)
 
 
         return (
@@ -1410,13 +1418,17 @@ class ChartNew extends React.Component {
                                     </span>
 
                                     <span>
-                                        {/*<Button className={this.props.classes.btn}*/}
-                                        {/*        style={{width: `${this.state.widthChart - 60}px`}}*/}
-                                        {/*        variant="contained"*/}
-                                        {/*        color="primary"*/}
-                                        {/*        onClick={() => window.print()}>*/}
-                                        {/*    Распечатать график*/}
-                                        {/*</Button>*/}
+                                        <ReactToPrint trigger={() => {
+                                            return (
+                                                <Button className={this.props.classes.btn}
+                                                        variant="contained"
+                                                        color="primary"
+                                                >
+                                                    Распечатать график
+                                                </Button>
+                                            );
+                                        }}
+                                                      content={() => this.chartRef}/>
                                     </span>
 
                                 </div>
@@ -1560,7 +1572,7 @@ class ChartNew extends React.Component {
                                                    padding={{top: 10, bottom: 10}}
                                                    yExtents={yExtents}>
 
-                                                <XAxis axisAt="bottom" orient="bottom"/>
+                                                <XAxis axisAt="bottom" orient="bottom"  />
                                                 <YAxis axisAt="left"
                                                        orient="left"
                                                        ticks={4}
@@ -1666,6 +1678,7 @@ class ChartNew extends React.Component {
                                                 <Brush ref={(brush) => {
                                                     this.brushRef1 = brush
                                                 }}
+                                                       height={+heightMainChartLines}
                                                        enabled={this.state.brushEnabled} type='2D'
                                                        onBrush={this.handleBrush}/>
                                             </Chart>
@@ -1694,6 +1707,7 @@ class ChartNew extends React.Component {
                                                         <Brush ref={(brush) => {
                                                             this.brushRef2 = brush
                                                         }} enabled={this.state.brushEnabled} type='1D'
+                                                               height={+heightMainChartLines}
                                                                onBrush={this.handleBrush}/>
                                                     </Chart>
                                                 ) : null
@@ -1728,6 +1742,7 @@ class ChartNew extends React.Component {
                                                         <Brush ref={(brush) => {
                                                             this.brushRef3 = brush
                                                         }} enabled={this.state.brushEnabled} type='1D'
+                                                               height={+heightMainChartLines}
                                                                onBrush={this.handleBrush}/>
                                                     </Chart>
                                                 ) : null
@@ -1759,7 +1774,9 @@ class ChartNew extends React.Component {
                                                         <MouseCoordinateY displayFormat={format(".2f")}/>
                                                         <Brush ref={(brush) => {
                                                             this.brushRef4 = brush
-                                                        }} enabled={this.state.brushEnabled} type='1D'
+                                                        }} enabled={this.state.brushEnabled}
+                                                               height={+heightMainChartLines}
+                                                               type='1D'
                                                                onBrush={this.handleBrush}/>
                                                     </Chart>
                                                 ) : null
@@ -2112,12 +2129,6 @@ class ChartNew extends React.Component {
                                 </div>
                                 <div className="iframe-filter__flex">
                                     <span>
-                                      {/*<Button className={this.props.classes.btn}*/}
-                                      {/*            variant="contained"*/}
-                                      {/*            color="primary"*/}
-                                      {/*            onClick={() => window.print(this.chartRef)}>*/}
-                                      {/*      Распечатать график*/}
-                                      {/*  </Button>*/}
                                         <ReactToPrint trigger={() => {
                                             return (
                                                 <Button className={this.props.classes.btn}

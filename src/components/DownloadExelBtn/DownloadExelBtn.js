@@ -17,7 +17,7 @@ const styles = makeStyles({
 
 const DownloadExelBtn = ({data, width}) => {
     const classes = styles();
-    console.log('data from excel btn', data)
+    // console.log('data from excel btn', data)
     return (
         <ExcelFile element={<Button classes={{root: classes.root}} style={{width: `${width - 60}px`}} variant="contained" color="primary">Скачать в
             Excel</Button>}>
