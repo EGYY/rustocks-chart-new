@@ -274,11 +274,13 @@ class ChartNew extends React.Component {
     handleChangeCheckboxCode(code) {
         let oldStockCodes = this.state.stockCodes;
         let newStockCodes = oldStockCodes;
+        const analiticExist = ((this.state.stockCodes[this.state.currAnalitics] !== undefined) && (this.state.stockCodes[this.state.currAnalitics] == false))
         newStockCodes[code] = !(oldStockCodes[code] || false);
         this.setState({
             stockCodes: newStockCodes
         });
         const trueStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true);
+        console.log(trueStockeCodes)
         this.setState({
             trueCountStockeCodes: trueStockeCodes.length
         });
@@ -295,18 +297,14 @@ class ChartNew extends React.Component {
 
             });
         }
-        if (trueStockeCodes.length === 1) {
 
+
+
+        if ((trueStockeCodes.length >= 1)) {
             this.dataCalculator(trueStockeCodes[0][0]);
             this.setState({
-                currAnalitics: trueStockeCodes[0][0]
-            });
-        }
-
-
-        if ((trueStockeCodes.length > 1)) {
-            this.setState({
                 typeChart: 'close-chart',
+                currAnalitics: trueStockeCodes[0][0],
                 isMinMax: false,
                 isTrendLine: false,
                 isTotalIncome: false,
@@ -318,12 +316,15 @@ class ChartNew extends React.Component {
 
     dataCalculator(currAnalitics = this.state.currAnalitics) {
         let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc;
+        const codeArrValues = this.props.arrPapers.filter(item => item.index).map(item => `${item.index}Close`)
+        const stockArr = this.props.arrPapers.filter(item => item.stock).map(item => item.stock[1]);
+        const filteredStockArr = stockArr.filter(item => item !== currAnalitics).map(item => `${item}Close`)
 
         compareCalc = compare()
             .options({
-                basePath: "close",
-                mainKeys: ["open", "high", "low", "close"],
-                compareKeys: this.props.arrCompareKeys
+                basePath: `${currAnalitics}Close`,
+                mainKeys: [`${currAnalitics}Close`, `${currAnalitics}Open`, `${currAnalitics}High`,`${currAnalitics}Low`],
+                compareKeys: [...filteredStockArr, ...codeArrValues]
             })
             .accessor((d) => d.compare)
             .merge((d, c) => {
@@ -636,6 +637,7 @@ class ChartNew extends React.Component {
     }
 
 
+
     render() {
         let start, end;
         const {data: initialData, type, ratio, arrPapers} = this.props;
@@ -659,7 +661,7 @@ class ChartNew extends React.Component {
             yMin,
             timeGap
         } = this.state;
-
+        // console.log(this.state)
         const margin = {left: 60, right: 60, top: 20, bottom: 24}
 
         const numberFormat = format(".2f");
@@ -673,20 +675,24 @@ class ChartNew extends React.Component {
                     x: `${formatTimeToYMD(xAccessor(currentItem))} ${new Date(timeFormat(xAccessor(currentItem))).toLocaleTimeString()}`,
                     y: [
                         {
+                            label: "Бумага",
+                            value: this.state.currAnalitics
+                        },
+                        {
                             label: "Открытие",
-                            value: currentItem[this.state.currAnalitics].open && numberFormat(currentItem[this.state.currAnalitics].open)
+                            value: `${currentItem[this.state.currAnalitics].open}`
                         },
                         {
                             label: "Максимум",
-                            value: currentItem[this.state.currAnalitics].high && numberFormat(currentItem[this.state.currAnalitics].high)
+                            value:  `${currentItem[this.state.currAnalitics].high}`
                         },
                         {
                             label: "Минимум",
-                            value: currentItem[this.state.currAnalitics].low && numberFormat(currentItem[this.state.currAnalitics].low)
+                            value:  `${currentItem[this.state.currAnalitics].low}`
                         },
                         {
                             label: "Закрытие",
-                            value: currentItem[this.state.currAnalitics].close && numberFormat(currentItem[this.state.currAnalitics].close)
+                            value: `${currentItem[this.state.currAnalitics].close}`
                         },
                         {
                             label: "Объем (акции)",
@@ -714,73 +720,95 @@ class ChartNew extends React.Component {
 
         const stockArr = arrPapers.filter(item => item.stock);
         const indexesArr = arrPapers.filter(item => item.index);
+        const analiticSelectorItems = Object.entries(this.state.stockCodes).filter(item => item[1] === true)
+        console.log(analiticSelectorItems)
+        const renderAnaliticSelector = analiticSelectorItems.map((item, i) => {
 
-        const renderAnaliticSelector = stockArr.map((item, i) => {
-            const disabled = !((this.state.stockCodes[item.stock[1]] !== undefined) && (this.state.stockCodes[item.stock[1]] !== false));
             return <MenuItem key={i}
-                             disabled={disabled && true}
-                             value={item.stock[1]}>{item.stock[1]}</MenuItem>
+                             value={item[0]}>{item[0]}</MenuItem>
         })
 
-
         const renderChartFromType = (code) => {
-            switch (typeChart) {
-                case "close-chart":
-                    return (
-                        <LineSeries
-                            yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => d['compare'][`${code}Close`] : d => d[code].close}
-                            stroke={initialData[0][code].color}/>
-                    );
+            if (code == this.state.currAnalitics) {
+                switch (typeChart) {
+                    case "close-chart":
+                        return (
+                            <LineSeries
+                                yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => +d['compare'][`${code}Close`] : d => d[code].close}
+                                stroke={initialData[0][code].color}/>
+                        );
 
 
-                case "candle-chart":
-                    return (
-                        <CandlestickSeries
-                            fill={(d) => d.close > d.open ? this.props.config.candleStickChart.colorHigh : this.props.config.candleStickChart.colorLow}
-                            yAccessor={d =>
+                    case "candle-chart":
+                        return (
+                            <CandlestickSeries
+                                fill={(d) => (d.close > d.open) ? this.props.config.candleStickChart.colorHigh : this.props.config.candleStickChart.colorLow}
+                                yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? (d =>
+                                    ({
+                                        open: +d['compare'][`${code}Open`],
+                                        high: +d['compare'][`${code}High`],
+                                        low: +d['compare'][`${code}Low`],
+                                        close: +d['compare'][`${code}Close`],
+                                    })) : (d =>
+                                    ({
+                                        open: +d[code].open,
+                                        high: +d[code].high,
+                                        low: +d[code].low,
+                                        close: +d[code].close,
+                                    }))
+
+                                }/>
+                        );
+
+
+                    case "ohl-chart":
+                        return (
+                            <OHLCSeries yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? (d =>
                                 ({
-                                    open: d[code].open,
-                                    high: d[code].high,
-                                    low: d[code].low,
-                                    close: d[code].close
-                                })
-
-                            }/>
-                    );
-
-
-                case "ohl-chart":
-                    return (
-                        <OHLCSeries yAccessor={d => ({
-                            open: d[code].open,
-                            high: d[code].high,
-                            low: d[code].low,
-                            close: d[code].close
-                        })}
-                                    stroke={this.props.config.ohlChart.color}/>
-                    );
+                                    open: +d['compare'][`${code}Open`],
+                                    high: +d['compare'][`${code}High`],
+                                    low: +d['compare'][`${code}Low`],
+                                    close: +d['compare'][`${code}Close`],
+                                })) : (d =>
+                                ({
+                                    open: +d[code].open,
+                                    high: +d[code].high,
+                                    low: +d[code].low,
+                                    close: +d[code].close,
+                                }))
+                            }
+                                        stroke={this.props.config.ohlChart.color}/>
+                        );
 
 
-                case 'area-chart':
-                    return (
-                        <AreaSeries
-                            fill={this.props.config.areaChart.fillAreaColor}
-                            opacity={this.props.config.areaChart.opacityArea}
-                            stroke={this.props.config.areaChart.lineColor}
-                            strokeWidth={this.props.config.areaChart.lineWidth}
-                            strokeOpacity={this.props.config.areaChart.opcityLine}
-                            yAccessor={d => d[code].close}
-                        />
-                    );
+                    case 'area-chart':
+                        return (
+                            <AreaSeries
+                                fill={this.props.config.areaChart.fillAreaColor}
+                                opacity={this.props.config.areaChart.opacityArea}
+                                stroke={this.props.config.areaChart.lineColor}
+                                strokeWidth={this.props.config.areaChart.lineWidth}
+                                strokeOpacity={this.props.config.areaChart.opcityLine}
+                                yAccessor={d => ((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d['compare'][`${code}Close`] : d[code].close}
+                            />
+                        );
 
-                default:
-                    return (
-                        <LineSeries
-                            yAccessor={d => d[code].close}
-                            stroke={initialData[0][code].color}/>
-                    );
+                    default:
+                        return (
+                            <LineSeries
+                                yAccessor={d => d[code].close}
+                                stroke={initialData[0][code].color}/>
+                        );
 
+                }
+            }else {
+                return (
+                    <LineSeries
+                        yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => +d['compare'][`${code}Close`] : d => d[code].close}
+                        stroke={initialData[0][code].color}/>
+                );
             }
+
 
         }
 
@@ -823,6 +851,8 @@ class ChartNew extends React.Component {
             )
         });
 
+        // console.log(this.props.arrCompareKeys)
+
         let emaCustom, smaCustom, rsiCalculator, macdCalculator, calculatedData, compareCalc
 
         if (this.state.emaCustom) {
@@ -830,15 +860,22 @@ class ChartNew extends React.Component {
             macdCalculator = this.state.macdCalculator;
             rsiCalculator = this.state.rsiCalculator;
             smaCustom = this.state.smaCustom;
+            compareCalc = this.state.compareCalc
 
 
-            calculatedData = calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))));
+            calculatedData = compareCalc(emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData)))));
         } else {
+            const codeArrValues = this.props.arrPapers.filter(item => item.index).map(item => `${item.index}Close`)
+            const stockArrValues = this.props.arrPapers.filter(item => item.stock).map(item => item.stock[1]);
+            const filteredStockArr = stockArrValues.filter(item => item !== this.state.currAnalitics).map(item => `${item}Close`)
+            const analiticSelectorItems = Object.entries(this.state.stockCodes).filter(item => item[1] === true)
+            const code = ((this.state.stockCodes[this.state.currAnalitics] !== undefined) && (this.state.stockCodes[this.state.currAnalitics] == false)) ? analiticSelectorItems[0][0] : this.state.currAnalitics
+
             compareCalc = compare()
                 .options({
-                    basePath: "close",
-                    mainKeys: ["open", "high", "low", "close"],
-                    compareKeys: this.props.arrCompareKeys
+                    basePath: `${code}Close`,
+                    mainKeys: [`${code}Close`, `${code}Open`, `${code}High`,`${code}Low`],
+                    compareKeys: [...filteredStockArr,...codeArrValues]
                 })
                 .accessor((d) => d.compare)
                 .merge((d, c) => {
@@ -882,7 +919,7 @@ class ChartNew extends React.Component {
                 })
                 .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.macd);
 
-            calculatedData = emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData))))
+            calculatedData = compareCalc(emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData)))))
         }
 
         const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(d => d.date);
@@ -897,13 +934,12 @@ class ChartNew extends React.Component {
 
         let xExtents;
 
-        const compareData = data.map(item => {
-            return item[stockArr[0].stock[1] || this.state.currAnalitics]
-        })
+        // console.log(this.props.arrCompareKeys)
 
-        console.log(compareData);
+        console.log(data)
 
-        // console.log(compareCalc(data))
+        console.log(this.state)
+
 
         if ((this.state.supportsTouch) && (this.state.plotData.length > 0)) {
             xExtents = this.state.mobileXExtents;
@@ -1003,7 +1039,7 @@ class ChartNew extends React.Component {
         }
 
         // console.log(getDataForExcel)
-
+        const analiticExist = ((this.state.stockCodes[this.state.currAnalitics] !== undefined) && (this.state.stockCodes[this.state.currAnalitics] == false))
 
         return (
             <div>
@@ -1253,7 +1289,7 @@ class ChartNew extends React.Component {
                                             className={this.props.classes.input}
                                             labelId="demo-simple-select-label"
                                             id="demo-simple-select"
-                                            value={this.state.currAnalitics}
+                                            value={analiticExist && this.state.trueCountStockeCodes !== 0 ? analiticSelectorItems[0][0] : this.state.currAnalitics}
                                             onChange={(e) => this.handleChangeSelectAnalitic(e)}
                                         >
                                             {
@@ -1488,7 +1524,7 @@ class ChartNew extends React.Component {
                                     Цены
                                 </div>
                                 <FormControl
-                                    disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) || false}
+                                    // disabled={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) || false}
                                     style={{width: '150px'}}
                                 >
                                     <Select
@@ -1578,7 +1614,7 @@ class ChartNew extends React.Component {
                                                        ticks={4}
                                                     // showTicks={true}
                                                        showGridLines={true}
-                                                    // tickFormat={value => `${value / 100}%`}
+                                                       tickFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index') )? format(".0%") : format(".2f")}
                                                 />
                                                 <Label text={this.props.config.chartCaption}
                                                        fontSize={40}
@@ -1911,7 +1947,7 @@ class ChartNew extends React.Component {
                                         className={this.props.classes.input}
                                         labelId="demo-simple-select-label"
                                         id="demo-simple-select"
-                                        value={this.state.currAnalitics}
+                                        value={analiticExist && this.state.trueCountStockeCodes !== 0 ? analiticSelectorItems[0][0] : this.state.currAnalitics}
                                         onChange={(e) => this.handleChangeSelectAnalitic(e)}
                                     >
                                         {

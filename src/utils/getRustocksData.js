@@ -14,6 +14,9 @@ const parseData = (data, stockColors, arrCompareKeys) => {
                     parsedData.push({
                         date: +key,
                         [`${data[i].ticker}Close`]: +value[3],
+                        [`${data[i].ticker}High`]: +value[1],
+                        [`${data[i].ticker}Low`]: +value[2],
+                        [`${data[i].ticker}Open`]: +value[0],
                         [data[i].ticker]: {
                             color: stockColors[i],
                             open: +value[0],
@@ -100,7 +103,7 @@ const getDataRustocks = async (timeGap, stockArr, stockColors, period) => {
     const arrStockPapers = result.map(item => {
         if (Object.keys(item.values).length !== 0){
             if (item.code && item.ticker) {
-                arrCompareKeys.push(`${item.ticker}Close`)
+                arrCompareKeys.push(`${item.ticker}Close`, `${item.ticker}Open`, `${item.ticker}High`, `${item.ticker}Low`)
                 return {
                     stock: [item.code, item.ticker]
                 }
