@@ -280,7 +280,7 @@ class ChartNew extends React.Component {
             stockCodes: newStockCodes
         });
         const trueStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true);
-        console.log(trueStockeCodes)
+        // console.log(trueStockeCodes)
         this.setState({
             trueCountStockeCodes: trueStockeCodes.length
         });
@@ -301,20 +301,20 @@ class ChartNew extends React.Component {
 
 
         if ((trueStockeCodes.length >= 1)) {
-            this.dataCalculator(trueStockeCodes[0][0]);
+            this.dataCalculator(trueStockeCodes[0][0], trueStockeCodes.length);
             this.setState({
                 typeChart: 'close-chart',
                 currAnalitics: trueStockeCodes[0][0],
                 isMinMax: false,
                 isTrendLine: false,
                 isTotalIncome: false,
-                isSma: false,
-                isEma: false,
+                // isSma: false,
+                // isEma: false,
             });
         }
     }
 
-    dataCalculator(currAnalitics = this.state.currAnalitics) {
+    dataCalculator(currAnalitics = this.state.currAnalitics, count = this.state.trueCountStockeCodes) {
         let emaCustom, smaCustom, rsiCalculator, macdCalculator, compareCalc;
         const codeArrValues = this.props.arrPapers.filter(item => item.index).map(item => `${item.index}Close`)
         const stockArr = this.props.arrPapers.filter(item => item.stock).map(item => item.stock[1]);
@@ -323,39 +323,70 @@ class ChartNew extends React.Component {
         compareCalc = compare()
             .options({
                 basePath: `${currAnalitics}Close`,
-                mainKeys: [`${currAnalitics}Close`, `${currAnalitics}Open`, `${currAnalitics}High`,`${currAnalitics}Low`],
+                mainKeys: [`${currAnalitics}Close`, `${currAnalitics}Open`, `${currAnalitics}High`,`${currAnalitics}Low`, 'emaCustom', 'smaCustom'],
                 compareKeys: [...filteredStockArr, ...codeArrValues]
             })
             .accessor((d) => d.compare)
             .merge((d, c) => {
                 d.compare = c
             })
+        if (count > 1) {
+            emaCustom = ema()
+                .options(
+                    {
+                        windowSize: +this.state.emaPeriod,
+                        sourcePath: [currAnalitics, 'close'],
+                    },
+                )
+                .merge((d, c) => {
 
-        emaCustom = ema()
-            .options(
-                {
-                    windowSize: +this.state.emaPeriod,
+                    {
+                        d.emaCustom = c;
+                    }
+
+                })
+                .accessor(({['compare']: d}) => d.emaCustom);
+
+            smaCustom = sma()
+                .options({
+                    windowSize: +this.state.smaPeriod,
                     sourcePath: [currAnalitics, 'close']
-                },
-            )
-            .merge(({[currAnalitics]: data}, c) => {
+                })
+                .merge((data, c) => {
+                    data.smaCustom = c
+                })
+                .accessor(({['compare']: data}) => data.smaCustom);
 
-                {
-                    data.emaCustom = c;
-                }
+        }else {
+            emaCustom = ema()
+                .options(
+                    {
+                        windowSize: +this.state.emaPeriod,
+                        sourcePath: [currAnalitics, 'close'],
+                    },
+                )
+                .merge((d, c) => {
 
-            })
-            .accessor(({[currAnalitics]: data}) => data.emaCustom);
+                    {
+                        d.emaCustom = c;
+                    }
 
-        smaCustom = sma()
-            .options({
-                windowSize: +this.state.smaPeriod,
-                sourcePath: [currAnalitics, 'close']
-            })
-            .merge(({[currAnalitics]: data}, c) => {
-                data.smaCustom = c
-            })
-            .accessor(({[currAnalitics]: data}) => data.smaCustom);
+                })
+                .accessor((d) => d.emaCustom);
+
+            smaCustom = sma()
+                .options({
+                    windowSize: +this.state.smaPeriod,
+                    sourcePath: [currAnalitics, 'close']
+                })
+                .merge(({[currAnalitics]: data}, c) => {
+                    data.smaCustom = c
+                })
+                .accessor(({[currAnalitics]: data}) => data.smaCustom);
+
+        }
+
+
 
         rsiCalculator = rsi()
             .options({
@@ -612,7 +643,6 @@ class ChartNew extends React.Component {
     createRowsTable(data, stockArr, numberFormat, numberFormatMillions) {
         let sumData = 0;
         let sumDataMoney = 0;
-
         const lastClose = data[data.length - 1][this.state.currAnalitics || stockArr[0].stock[1]].close;
         const firstClose = data[0][this.state.currAnalitics || stockArr[0].stock[1]].close;
         data.map(item => {
@@ -629,8 +659,10 @@ class ChartNew extends React.Component {
             this.createData('Первое закрытие', firstClose),
             this.createData('Последнее закрытие', lastClose),
             this.createData('Изменение, %', numberFormat(difference)),
-            this.createData('Суммарный объем торгов(шт.)', numberFormatMillions(sumData).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')),
-            this.createData('Суммарный объем торгов', numberFormatMillions(sumDataMoney).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')),
+            this.createData('Суммарный объем торгов(шт.)', sumData),
+            this.createData('Среднедневной объем торгов(шт.)', sumData/data.length),
+            this.createData('Суммарный объем торгов(валюта)', sumDataMoney),
+            this.createData('Среднедневной объем торгов(валюта)', sumDataMoney/data.length),
         ];
 
         return rows;
@@ -699,7 +731,6 @@ class ChartNew extends React.Component {
                             value: currentItem[this.state.currAnalitics].volume2 &&
                                 numberFormatMillions(currentItem[this.state.currAnalitics].volume2).replace(/G/, ' Млрд.').replace(/M/, ' Млн.')
                         },
-
                         {
                             label: "Оборот",
                             value: currentItem[this.state.currAnalitics].volume &&
@@ -721,7 +752,7 @@ class ChartNew extends React.Component {
         const stockArr = arrPapers.filter(item => item.stock);
         const indexesArr = arrPapers.filter(item => item.index);
         const analiticSelectorItems = Object.entries(this.state.stockCodes).filter(item => item[1] === true)
-        console.log(analiticSelectorItems)
+        // console.log(analiticSelectorItems)
         const renderAnaliticSelector = analiticSelectorItems.map((item, i) => {
 
             return <MenuItem key={i}
@@ -856,6 +887,7 @@ class ChartNew extends React.Component {
         let emaCustom, smaCustom, rsiCalculator, macdCalculator, calculatedData, compareCalc
 
         if (this.state.emaCustom) {
+
             emaCustom = this.state.emaCustom;
             macdCalculator = this.state.macdCalculator;
             rsiCalculator = this.state.rsiCalculator;
@@ -865,16 +897,17 @@ class ChartNew extends React.Component {
 
             calculatedData = compareCalc(emaCustom(macdCalculator(rsiCalculator(smaCustom(initialData)))));
         } else {
+
+
             const codeArrValues = this.props.arrPapers.filter(item => item.index).map(item => `${item.index}Close`)
             const stockArrValues = this.props.arrPapers.filter(item => item.stock).map(item => item.stock[1]);
             const filteredStockArr = stockArrValues.filter(item => item !== this.state.currAnalitics).map(item => `${item}Close`)
             const analiticSelectorItems = Object.entries(this.state.stockCodes).filter(item => item[1] === true)
             const code = ((this.state.stockCodes[this.state.currAnalitics] !== undefined) && (this.state.stockCodes[this.state.currAnalitics] == false)) ? analiticSelectorItems[0][0] : this.state.currAnalitics
-
             compareCalc = compare()
                 .options({
                     basePath: `${code}Close`,
-                    mainKeys: [`${code}Close`, `${code}Open`, `${code}High`,`${code}Low`],
+                    mainKeys: [`${code}Close`, `${code}Open`, `${code}High`,`${code}Low`, 'emaCustom', 'smaCustom'],
                     compareKeys: [...filteredStockArr,...codeArrValues]
                 })
                 .accessor((d) => d.compare)
@@ -882,24 +915,63 @@ class ChartNew extends React.Component {
                     d.compare = c
                 })
 
-            emaCustom = ema()
-                .options({windowSize: +emaPeriod})
-                .merge(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}, c) => {
-                    {
-                        data.emaCustom = c;
-                    }
+            if (this.state.trueCountStockeCodes > 1 ) {
+                emaCustom = ema()
+                    .options(
+                        {
+                            windowSize: +this.state.emaPeriod,
+                            sourcePath: [`${stockArr[0].stock[1]}`, 'close']
 
-                })
-                .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.emaCustom);
+                        },
+                    )
+                    .merge((d, c) => {
 
-            smaCustom = sma()
-                .options({
-                    windowSize: +smaPeriod,
-                })
-                .merge(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}, c) => {
-                    data.smaCustom = c
-                })
-                .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.smaCustom);
+                        {
+                            d.emaCustom = c;
+                        }
+
+                    })
+                    .accessor(({['compare']: d}) => d.emaCustom);
+
+                smaCustom = sma()
+                    .options({
+                        windowSize: +smaPeriod,
+                        sourcePath: [`${stockArr[0].stock[1]}`, 'close']
+                    })
+                    .merge((data, c) => {
+                        data.smaCustom = c
+                    })
+                    .accessor(({['compare']: data}) => data.smaCustom);
+            } else {
+                emaCustom = ema()
+                    .options(
+                        {
+                            windowSize: +this.state.emaPeriod,
+                            sourcePath: [`${stockArr[0].stock[1]}`, 'close']
+
+                        },
+                    )
+                    .merge((d, c) => {
+
+                        {
+                            d.emaCustom = c;
+                        }
+
+                    })
+                    .accessor((d) => d.emaCustom);
+
+                smaCustom = sma()
+                    .options({
+                        windowSize: +smaPeriod,
+                    })
+                    .merge(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}, c) => {
+                        data.smaCustom = c
+                    })
+                    .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.smaCustom);
+            }
+
+
+
 
             rsiCalculator = rsi()
                 .options({windowSize: +rsiPeriod})
@@ -936,9 +1008,9 @@ class ChartNew extends React.Component {
 
         // console.log(this.props.arrCompareKeys)
 
-        console.log(data)
+        // console.log(data)
 
-        console.log(this.state)
+        // console.log(this.state)
 
 
         if ((this.state.supportsTouch) && (this.state.plotData.length > 0)) {
@@ -1659,7 +1731,7 @@ class ChartNew extends React.Component {
                                                         stroke={this.props.config.totalIncome.lineColor}
                                                         strokeWidth={this.props.config.totalIncome.lineWidth}
                                                         strokeOpacity={this.props.config.totalIncome.opcityLine}
-                                                        yAccessor={d => d[this.state.currAnalitics ? this.state.currAnalitics : stockArr[0].stock[1]].close}/> : null}
+                                                        yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => +d['compare'][`${this.state.currAnalitics}Close`] : d => d[this.state.currAnalitics].close}/> : null}
 
                                                 {isEma ?
                                                     <LineSeries yAccessor={emaCustom.accessor()}
@@ -1681,8 +1753,8 @@ class ChartNew extends React.Component {
                                                 ) : null}
 
 
-                                                <MouseCoordinateY displayFormat={format(".2f")}/>
-
+                                                <MouseCoordinateY displayFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index') )? format(".0%") : format(".2f")}/>
+                                                <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M")} />
 
                                                 <HoverTooltip
                                                     fill={this.props.config.hoverTooltip.backgroundColor}
@@ -1736,7 +1808,7 @@ class ChartNew extends React.Component {
                                                         />
 
                                                         <MouseCoordinateY displayFormat={numberFormatMillions}/>
-
+                                                        <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
                                                         <BarSeries fill={this.props.config.volumeChart.color}
                                                                    yAccessor={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}/>
 
@@ -1775,6 +1847,7 @@ class ChartNew extends React.Component {
                                                                    yAccessor={rsiCalculator.accessor()}/>
 
                                                         <MouseCoordinateY displayFormat={format(".2f")}/>
+                                                        <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
                                                         <Brush ref={(brush) => {
                                                             this.brushRef3 = brush
                                                         }} enabled={this.state.brushEnabled} type='1D'
@@ -1806,7 +1879,7 @@ class ChartNew extends React.Component {
                                                                         }
                                                                     }/>
 
-                                                        <MouseCoordinateX displayFormat={timeFormat("%I:%M")}/>
+                                                        <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
                                                         <MouseCoordinateY displayFormat={format(".2f")}/>
                                                         <Brush ref={(brush) => {
                                                             this.brushRef4 = brush
@@ -2007,8 +2080,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
+                                            disabled={(this.state.trueCountStockeCodes === 0) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isSma}
@@ -2033,8 +2105,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
+                                            disabled={(this.state.trueCountStockeCodes === 0) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isEma}
@@ -2061,8 +2132,7 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
+                                            disabled={(this.state.trueCountStockeCodes === 0) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTotalIncome}
