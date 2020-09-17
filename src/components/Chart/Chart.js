@@ -196,14 +196,59 @@ class ChartNew extends React.Component {
         }
     }
 
-    findMinMaxValues(data, currAnalitics) {
-        let min = data[0][currAnalitics].close;
-        let max = data[0][currAnalitics].close;
+    findMinMaxValuesTable(data, currAnalitics) {
+        let min, max
+        min = data[0][currAnalitics].close;
+        max = data[0][currAnalitics].close;
 
         for (let i = 1; i < data.length; i++) {
             let currValue = data[i][currAnalitics].close;
             min = (currValue < min) ? currValue : min;
             max = (currValue > max) ? currValue : max;
+        }
+
+        console.log([min,max], data)
+
+        return [min, max]
+    }
+
+    findMinMaxValues(data, currAnalitics) {
+        let min, max, compareData, compareCalc
+        const codeArrValues = this.props.arrPapers.filter(item => item.index).map(item => `${item.index}Close`)
+        const stockArr = this.props.arrPapers.filter(item => item.stock).map(item => item.stock[1]);
+        const filteredStockArr = stockArr.filter(item => item !== currAnalitics).map(item => `${item}Close`)
+
+        compareCalc = compare()
+            .options({
+                basePath: `${currAnalitics}Close`,
+                mainKeys: [`${currAnalitics}Close`, `${currAnalitics}Open`, `${currAnalitics}High`, `${currAnalitics}Low`, 'emaCustom', 'smaCustom'],
+                compareKeys: [...filteredStockArr, ...codeArrValues]
+            })
+            .accessor((d) => d.compareTest)
+            .merge((d, c) => {
+                d.compareTest = c
+            })
+
+        compareData = compareCalc(data)
+
+        if (this.state.trueCountStockeCodes > 1) {
+            min = compareData[0]['compareTest'][`${currAnalitics}Close`];
+            max = compareData[0]['compareTest'][`${currAnalitics}Close`];
+
+            for (let i = 1; i < compareData.length; i++) {
+                let currValue = compareData[i]['compareTest'][`${currAnalitics}Close`];
+                min = (currValue < min) ? currValue : min;
+                max = (currValue > max) ? currValue : max;
+            }
+        } else {
+            min = data[0][currAnalitics].close;
+            max = data[0][currAnalitics].close;
+
+            for (let i = 1; i < data.length; i++) {
+                let currValue = data[i][currAnalitics].close;
+                min = (currValue < min) ? currValue : min;
+                max = (currValue > max) ? currValue : max;
+            }
         }
 
         return [min, max];
@@ -280,7 +325,7 @@ class ChartNew extends React.Component {
             stockCodes: newStockCodes
         });
         const trueStockeCodes = Object.entries(this.state.stockCodes).filter(item => item[1] === true);
-        // console.log(trueStockeCodes)
+
         this.setState({
             trueCountStockeCodes: trueStockeCodes.length
         });
@@ -297,7 +342,6 @@ class ChartNew extends React.Component {
 
             });
         }
-
 
 
         if ((trueStockeCodes.length >= 1)) {
@@ -323,7 +367,7 @@ class ChartNew extends React.Component {
         compareCalc = compare()
             .options({
                 basePath: `${currAnalitics}Close`,
-                mainKeys: [`${currAnalitics}Close`, `${currAnalitics}Open`, `${currAnalitics}High`,`${currAnalitics}Low`, 'emaCustom', 'smaCustom'],
+                mainKeys: [`${currAnalitics}Close`, `${currAnalitics}Open`, `${currAnalitics}High`, `${currAnalitics}Low`, 'emaCustom', 'smaCustom'],
                 compareKeys: [...filteredStockArr, ...codeArrValues]
             })
             .accessor((d) => d.compare)
@@ -357,7 +401,7 @@ class ChartNew extends React.Component {
                 })
                 .accessor(({['compare']: data}) => data.smaCustom);
 
-        }else {
+        } else {
             emaCustom = ema()
                 .options(
                     {
@@ -385,7 +429,6 @@ class ChartNew extends React.Component {
                 .accessor(({[currAnalitics]: data}) => data.smaCustom);
 
         }
-
 
 
         rsiCalculator = rsi()
@@ -567,7 +610,8 @@ class ChartNew extends React.Component {
             const left = Math.min(brushCoords.end.xValue, brushCoords.start.xValue);
             const right = Math.max(brushCoords.end.xValue, brushCoords.start.xValue);
             const dataForMinMaxSearch = this.props.data.slice(left, right);
-            const minMaxValues = this.findMinMaxValues(dataForMinMaxSearch, this.state.currAnalitics);
+
+            const minMaxValues = this.findMinMaxValues(dataForMinMaxSearch, this.state.currAnalitics, this.state.compareCalc);
 
             this.setState({
                 testXExtents: [left, right],
@@ -641,33 +685,47 @@ class ChartNew extends React.Component {
     }
 
     createRowsTable(data, stockArr, numberFormat, numberFormatMillions) {
-        let sumData = 0;
-        let sumDataMoney = 0;
-        const lastClose = data[data.length - 1][this.state.currAnalitics || stockArr[0].stock[1]].close;
-        const firstClose = data[0][this.state.currAnalitics || stockArr[0].stock[1]].close;
-        data.map(item => {
-            sumData += +item[this.state.currAnalitics || stockArr[0].stock[1]].volume2
-            sumDataMoney += +item[this.state.currAnalitics || stockArr[0].stock[1]].volume
-        });
-        const difference = ((lastClose - firstClose) / firstClose) * 100;
-        const minMax = this.state.mobileMinMaxVal.length !== 0 ? [this.state.mobileMinMaxVal[0], this.state.mobileMinMaxVal[1]] : [this.state.yMin, this.state.yMax]
+        let sumDataStockCount = []
+        let sumDataStockMoney = []
+
+        const openData = stockArr.map(item => data[0][item.stock[1]].open)
+        const closeFData = stockArr.map(item => data[data.length - 1][item.stock[1]].close)
+        const closeLData = stockArr.map(item => data[0][item.stock[1]].close)
+        const minMaxData = stockArr.map(item => this.findMinMaxValuesTable(data, item.stock[1]))
+        const maxData = minMaxData.map(item => item[1])
+        const minData = minMaxData.map(item => item[0])
+        const differenceData = closeFData.map((item, i) => numberFormat(((closeLData[i] - item) / item) * 100))
+
+        stockArr.map(stock => {
+            let sumInStockCount = 0;
+            let sumInStockMoney = 0;
+            data.map(item => {
+                sumInStockCount += +numberFormat(item[stock.stock[1]].volume2)
+                sumInStockMoney += +numberFormat(item[stock.stock[1]].volume)
+            })
+            sumDataStockCount.push(sumInStockCount)
+            sumDataStockMoney.push(sumInStockMoney)
+        })
+
+        const averageDailySumCount = sumDataStockCount.map(item => numberFormat(item / data.length))
+        const averageDailySumMoney = sumDataStockMoney.map(item => numberFormat(item / data.length))
+
 
         let rows = [
-            this.createData('Открытие', data[0][this.state.currAnalitics || stockArr[0].stock[1]].open),
-            this.createData('Максимум', minMax[1]),
-            this.createData('Минимум', minMax[0]),
-            this.createData('Первое закрытие', firstClose),
-            this.createData('Последнее закрытие', lastClose),
-            this.createData('Изменение, %', numberFormat(difference)),
-            this.createData('Суммарный объем торгов(шт.)', sumData),
-            this.createData('Среднедневной объем торгов(шт.)', sumData/data.length),
-            this.createData('Суммарный объем торгов(валюта)', sumDataMoney),
-            this.createData('Среднедневной объем торгов(валюта)', sumDataMoney/data.length),
+            this.createData('Открытие', openData),
+            this.createData('Максимум', maxData),
+            this.createData('Минимум', minData),
+            this.createData('Первое закрытие', closeLData),
+            this.createData('Последнее закрытие', closeFData),
+            this.createData('Изменение, %', differenceData),
+            this.createData('Суммарный объем торгов(шт.)', sumDataStockCount),
+            this.createData('Среднедневной объем торгов(шт.)', averageDailySumCount),
+            this.createData('Суммарный объем торгов(валюта)', sumDataStockMoney),
+            this.createData('Среднедневной объем торгов(валюта)', averageDailySumMoney),
         ];
 
         return rows;
     }
-
 
 
     render() {
@@ -716,11 +774,11 @@ class ChartNew extends React.Component {
                         },
                         {
                             label: "Максимум",
-                            value:  `${currentItem[this.state.currAnalitics].high}`
+                            value: `${currentItem[this.state.currAnalitics].high}`
                         },
                         {
                             label: "Минимум",
-                            value:  `${currentItem[this.state.currAnalitics].low}`
+                            value: `${currentItem[this.state.currAnalitics].low}`
                         },
                         {
                             label: "Закрытие",
@@ -794,21 +852,22 @@ class ChartNew extends React.Component {
 
                     case "ohl-chart":
                         return (
-                            <OHLCSeries yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? (d =>
-                                ({
-                                    open: +d['compare'][`${code}Open`],
-                                    high: +d['compare'][`${code}High`],
-                                    low: +d['compare'][`${code}Low`],
-                                    close: +d['compare'][`${code}Close`],
-                                })) : (d =>
-                                ({
-                                    open: +d[code].open,
-                                    high: +d[code].high,
-                                    low: +d[code].low,
-                                    close: +d[code].close,
-                                }))
-                            }
-                                        stroke={this.props.config.ohlChart.color}/>
+                            <OHLCSeries
+                                yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? (d =>
+                                    ({
+                                        open: +d['compare'][`${code}Open`],
+                                        high: +d['compare'][`${code}High`],
+                                        low: +d['compare'][`${code}Low`],
+                                        close: +d['compare'][`${code}Close`],
+                                    })) : (d =>
+                                    ({
+                                        open: +d[code].open,
+                                        high: +d[code].high,
+                                        low: +d[code].low,
+                                        close: +d[code].close,
+                                    }))
+                                }
+                                stroke={this.props.config.ohlChart.color}/>
                         );
 
 
@@ -832,7 +891,7 @@ class ChartNew extends React.Component {
                         );
 
                 }
-            }else {
+            } else {
                 return (
                     <LineSeries
                         yAccessor={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? d => +d['compare'][`${code}Close`] : d => d[code].close}
@@ -907,15 +966,15 @@ class ChartNew extends React.Component {
             compareCalc = compare()
                 .options({
                     basePath: `${code}Close`,
-                    mainKeys: [`${code}Close`, `${code}Open`, `${code}High`,`${code}Low`, 'emaCustom', 'smaCustom'],
-                    compareKeys: [...filteredStockArr,...codeArrValues]
+                    mainKeys: [`${code}Close`, `${code}Open`, `${code}High`, `${code}Low`, 'emaCustom', 'smaCustom'],
+                    compareKeys: [...filteredStockArr, ...codeArrValues]
                 })
                 .accessor((d) => d.compare)
                 .merge((d, c) => {
                     d.compare = c
                 })
 
-            if (this.state.trueCountStockeCodes > 1 ) {
+            if (this.state.trueCountStockeCodes > 1) {
                 emaCustom = ema()
                     .options(
                         {
@@ -969,8 +1028,6 @@ class ChartNew extends React.Component {
                     })
                     .accessor(({[stockArr[0].stock[1] || this.state.currAnalitics]: data}) => data.smaCustom);
             }
-
-
 
 
             rsiCalculator = rsi()
@@ -1034,17 +1091,17 @@ class ChartNew extends React.Component {
             }
         }
 
-        const dataTrend = initialData.slice(start, end);
+        const dataTrend = data.slice(start, end);
 
         const timeStamps = dataTrend.map(item => +item.date);
 
         const xMax = Math.max(...timeStamps);
         const xMin = Math.min(...timeStamps);
 
-        const dataForTrendLine = dataTrend.map(item => {
+        const dataForTrendLine = (compareCalc ? compareCalc(dataTrend) : dataTrend).map(item => {
 
             return {
-                close: this.state.currAnalitics ? item[this.state.currAnalitics].close : item.close,
+                close: this.state.currAnalitics ? this.state.trueCountStockeCodes > 1 ? item['compare'][`${this.state.currAnalitics}Close`] : item[this.state.currAnalitics].close : item.close,
                 date: +item.date
             }
         })
@@ -1052,11 +1109,11 @@ class ChartNew extends React.Component {
 
         const trend = createTrend(dataForTrendLine, 'date', 'close')
 
-
         const trendData = {
             start: [end, trend.calcY(xMax)],
             end: [start, trend.calcY(xMin)],
         };
+        //console.log(trendData)
 
         let yExtents = [
             ((this.state.trueCountStockeCodes >= 1) && (this.state.indexChart !== 'off-index')) ? d => d.compare : this.state.indexChart !== 'off-index' ? d => d[this.state.indexChart].close : null,
@@ -1680,13 +1737,13 @@ class ChartNew extends React.Component {
                                                    padding={{top: 10, bottom: 10}}
                                                    yExtents={yExtents}>
 
-                                                <XAxis axisAt="bottom" orient="bottom"  />
+                                                <XAxis axisAt="bottom" orient="bottom"/>
                                                 <YAxis axisAt="left"
                                                        orient="left"
                                                        ticks={4}
                                                     // showTicks={true}
                                                        showGridLines={true}
-                                                       tickFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index') )? format(".0%") : format(".2f")}
+                                                       tickFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? format(".0%") : format(".2f")}
                                                 />
                                                 <Label text={this.props.config.chartCaption}
                                                        fontSize={40}
@@ -1742,10 +1799,12 @@ class ChartNew extends React.Component {
                                                 {isMinMax ? (
                                                     <React.Fragment>
                                                         <EdgeIndicator itemType="first" orient="right" edgeAt="right"
+                                                                       displayFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? format(".0%") : format(".2f")}
                                                                        yAccessor={() => this.state.supportsTouch ? this.state.mobileMinMaxVal[1] : yMax}
                                                                        fill={this.props.config.minMaxIndicator.maxIndicatorColor}
                                                         />
                                                         <EdgeIndicator itemType="first" orient="left" edgeAt="left"
+                                                                       displayFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? format(".0%") : format(".2f")}
                                                                        yAccessor={() => this.state.supportsTouch ? this.state.mobileMinMaxVal[0] : yMin}
                                                                        fill={this.props.config.minMaxIndicator.minIndicatorColor}
                                                         />
@@ -1753,8 +1812,10 @@ class ChartNew extends React.Component {
                                                 ) : null}
 
 
-                                                <MouseCoordinateY displayFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index') )? format(".0%") : format(".2f")}/>
-                                                <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M")} />
+                                                <MouseCoordinateY
+                                                    displayFormat={((this.state.trueCountStockeCodes > 1) || (this.state.indexChart !== 'off-index')) ? format(".0%") : format(".2f")}/>
+                                                <MouseCoordinateX at="bottom" orient="bottom"
+                                                                  displayFormat={timeFormat("%Y-%m-%d %H:%M")}/>
 
                                                 <HoverTooltip
                                                     fill={this.props.config.hoverTooltip.backgroundColor}
@@ -1808,7 +1869,8 @@ class ChartNew extends React.Component {
                                                         />
 
                                                         <MouseCoordinateY displayFormat={numberFormatMillions}/>
-                                                        <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
+                                                        <MouseCoordinateX at="bottom" orient="bottom"
+                                                                          displayFormat={timeFormat("%Y-%m-%d")}/>
                                                         <BarSeries fill={this.props.config.volumeChart.color}
                                                                    yAccessor={this.state.volumeTypeChart === 'money' ? d => d[this.state.currAnalitics].volume : d => d[this.state.currAnalitics].volume2}/>
 
@@ -1847,7 +1909,8 @@ class ChartNew extends React.Component {
                                                                    yAccessor={rsiCalculator.accessor()}/>
 
                                                         <MouseCoordinateY displayFormat={format(".2f")}/>
-                                                        <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
+                                                        <MouseCoordinateX at="bottom" orient="bottom"
+                                                                          displayFormat={timeFormat("%Y-%m-%d")}/>
                                                         <Brush ref={(brush) => {
                                                             this.brushRef3 = brush
                                                         }} enabled={this.state.brushEnabled} type='1D'
@@ -1879,7 +1942,8 @@ class ChartNew extends React.Component {
                                                                         }
                                                                     }/>
 
-                                                        <MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
+                                                        <MouseCoordinateX at="bottom" orient="bottom"
+                                                                          displayFormat={timeFormat("%Y-%m-%d")}/>
                                                         <MouseCoordinateY displayFormat={format(".2f")}/>
                                                         <Brush ref={(brush) => {
                                                             this.brushRef4 = brush
@@ -1902,8 +1966,8 @@ class ChartNew extends React.Component {
                                         <TableHead>
                                             <TableRow>
                                                 <TableCell>{this.state.currAnalitics}</TableCell>
-                                                <TableCell align="right">RUB</TableCell>
-
+                                                {stockArr.map(item => <TableCell
+                                                    align="right">{item.stock[1]}</TableCell>)}
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -1912,12 +1976,9 @@ class ChartNew extends React.Component {
                                                     <TableCell component="th" scope="row">
                                                         {row.name}
                                                     </TableCell>
-                                                    <TableCell align="right">{index === 5 ?
-                                                        row.values < 0 ?
-                                                            (<span style={{color: 'red'}}>{row.values}</span>) :
-                                                            (<span style={{color: 'green'}}>{row.values}</span>) :
-                                                        row.values}</TableCell>
-
+                                                    {row.values.map((cell, i) => {
+                                                        return <TableCell key={i} align="right">{cell}</TableCell>
+                                                    })}
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -2038,8 +2099,8 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
+                                            // disabled={((this.state.trueCountStockeCodes > 1) ||
+                                            //                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checkedIcon={<span
@@ -2060,8 +2121,8 @@ class ChartNew extends React.Component {
                                 <div className="iframe-filter__flex">
                                     <div className="iframe-checkboxes__item">
                                         <FormControlLabel
-                                            disabled={((this.state.trueCountStockeCodes > 1) ||
-                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
+                                            // disabled={((this.state.trueCountStockeCodes > 1) ||
+                                            //                                                (this.state.indexChart !== 'off-index') || (this.state.trueCountStockeCodes === 0)) || false}
                                             control={
                                                 <Checkbox
                                                     checked={isTrendLine}
@@ -2240,7 +2301,7 @@ class ChartNew extends React.Component {
                                                 <Button className={this.props.classes.btn}
                                                         variant="contained"
                                                         color="primary"
-                                                       >
+                                                >
                                                     Распечатать график
                                                 </Button>
                                             );

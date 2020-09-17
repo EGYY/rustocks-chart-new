@@ -112,9 +112,9 @@ function App({config}) {
     // console.log(formatedData)
 
 
-
     return (
         <div className="App">
+
             <Chart type="hybrid"
                    isLoading={isLoading}
                    data={formattedData}
@@ -129,6 +129,5 @@ function App({config}) {
         </div>
     );
 }
-
 
 export default App;
