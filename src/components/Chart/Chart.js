@@ -198,13 +198,14 @@ class ChartNew extends React.Component {
 
     findMinMaxValuesTable(data, currAnalitics) {
         let min, max
-        min = data[0][currAnalitics].close;
-        max = data[0][currAnalitics].close;
+        min = data[0][currAnalitics].low;
+        max = data[0][currAnalitics].high;
 
         for (let i = 1; i < data.length; i++) {
-            let currValue = data[i][currAnalitics].close;
-            min = (currValue < min) ? currValue : min;
-            max = (currValue > max) ? currValue : max;
+            let currValueMax = data[i][currAnalitics].high;
+            let currValueMin = data[i][currAnalitics].low;
+            min = (currValueMin < min) ? currValueMin : min;
+            max = (currValueMax > max) ? currValueMax : max;
         }
 
         console.log([min,max], data)
@@ -700,15 +701,15 @@ class ChartNew extends React.Component {
             let sumInStockCount = 0;
             let sumInStockMoney = 0;
             data.map(item => {
-                sumInStockCount += +numberFormat(item[stock.stock[1]].volume2)
-                sumInStockMoney += +numberFormat(item[stock.stock[1]].volume)
+                sumInStockCount += Math.round(+item[stock.stock[1]].volume2)
+                sumInStockMoney += Math.round(+item[stock.stock[1]].volume)
             })
             sumDataStockCount.push(sumInStockCount)
             sumDataStockMoney.push(sumInStockMoney)
         })
 
-        const averageDailySumCount = sumDataStockCount.map(item => numberFormat(item / data.length))
-        const averageDailySumMoney = sumDataStockMoney.map(item => numberFormat(item / data.length))
+        const averageDailySumCount = sumDataStockCount.map(item => Math.round(+item / data.length))
+        const averageDailySumMoney = sumDataStockMoney.map(item => Math.round(+item / data.length))
 
 
         let rows = [
@@ -1143,7 +1144,7 @@ class ChartNew extends React.Component {
 
         let rows = this.createRowsTable(this.state.testXExtents.length === 0 ?
             this.props.data :
-            this.props.data.slice(sliceStart, sliceEnd),
+            this.props.data.slice(sliceStart, sliceEnd+1),
             stockArr, numberFormat, numberFormatMillions);
 
         let getDataForExcel;
@@ -1965,7 +1966,7 @@ class ChartNew extends React.Component {
                                     <Table aria-label="simple table">
                                         <TableHead>
                                             <TableRow>
-                                                <TableCell>{this.state.currAnalitics}</TableCell>
+                                                <TableCell>Инструмент</TableCell>
                                                 {stockArr.map(item => <TableCell
                                                     align="right">{item.stock[1]}</TableCell>)}
                                             </TableRow>
@@ -1977,7 +1978,7 @@ class ChartNew extends React.Component {
                                                         {row.name}
                                                     </TableCell>
                                                     {row.values.map((cell, i) => {
-                                                        return <TableCell key={i} align="right">{cell}</TableCell>
+                                                        return <TableCell key={i} align="right">{cell.toString().replace(/(\d)(?=(\d{3})+$)/g, '$1 ')}</TableCell>
                                                     })}
                                                 </TableRow>
                                             ))}
